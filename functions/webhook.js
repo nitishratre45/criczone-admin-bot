@@ -16,6 +16,43 @@ export async function onRequest(context) {
   try {
     const update = await request.json();
 
+    // ==================================================
+    // CHANNEL POST → SEND TO ALL USERS WHO USED /START
+    // ==================================================
+
+    if (update.channel_post) {
+      const post = update.channel_post;
+
+      if (env.BOT_KV) {
+        const users = await env.BOT_KV.list({
+          prefix: "users:"
+        });
+
+        for (const key of users.keys) {
+          const userId = key.name.replace("users:", "");
+
+          try {
+            await telegramMethod(
+              env.BOT_TOKEN,
+              "copyMessage",
+              {
+                chat_id: userId,
+                from_chat_id: post.chat.id,
+                message_id: post.message_id
+              }
+            );
+          } catch (error) {
+            console.error(
+              `Failed to send channel post to ${userId}`,
+              error
+            );
+          }
+        }
+      }
+
+      return new Response("OK");
+    }
+
     // =========================
     // MESSAGE CHECK
     // =========================
@@ -69,13 +106,13 @@ export async function onRequest(context) {
       return new Response("OK");
     }
 
+    // =========================
+    // COMMAND / TEXT CHECK
+    // =========================
+
     if (!text) {
       return new Response("OK");
     }
-
-    // =========================
-    // COMMAND
-    // =========================
 
     const command = text
       .split(/\s+/)[0]
@@ -87,6 +124,21 @@ export async function onRequest(context) {
     // =========================
 
     if (command === "/start") {
+
+      // Save private users
+      // who have started the bot
+      if (chatType === "private" && env.BOT_KV) {
+
+        await env.BOT_KV.put(
+          `users:${chatId}`,
+          JSON.stringify({
+            user_id: chatId,
+            first_name: msg.from?.first_name || "",
+            username: msg.from?.username || ""
+          })
+        );
+      }
+
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
@@ -99,6 +151,7 @@ export async function onRequest(context) {
     // =========================
 
     else if (command === "/help") {
+
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
@@ -142,6 +195,7 @@ export async function onRequest(context) {
     // =========================
 
     else if (command === "/mention") {
+
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
@@ -158,6 +212,7 @@ export async function onRequest(context) {
     // =========================
 
     else if (command === "/rules") {
+
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
@@ -183,6 +238,7 @@ export async function onRequest(context) {
     // =========================
 
     else if (command === "/about") {
+
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
@@ -205,6 +261,7 @@ Your cricket community for:
     // =========================
 
     else if (command === "/channel") {
+
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
@@ -221,6 +278,7 @@ Your cricket community for:
     // =========================
 
     else if (command === "/backup") {
+
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
@@ -237,6 +295,7 @@ Your cricket community for:
     // =========================
 
     else if (command === "/live") {
+
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
@@ -253,6 +312,7 @@ Your cricket community for:
     // =========================
 
     else if (command === "/score") {
+
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
@@ -269,6 +329,7 @@ Your cricket community for:
     // =========================
 
     else if (command === "/schedule") {
+
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
@@ -285,6 +346,7 @@ Your cricket community for:
     // =========================
 
     else if (command === "/stream") {
+
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
@@ -301,15 +363,50 @@ Your cricket community for:
     // =========================
 
     else if (command === "/links") {
+
       const buttons = [];
 
-      addButton(buttons, "🏏 CRICZONE HUB", env.GROUP_LINK);
-      addButton(buttons, "📢 Main Channel", env.MAIN_CHANNEL_LINK);
-      addButton(buttons, "🔄 Backup Channel", env.BACKUP_CHANNEL_LINK);
-      addButton(buttons, "🔴 Live", env.LIVE_LINK);
-      addButton(buttons, "📊 Score", env.SCORE_LINK);
-      addButton(buttons, "📅 Schedule", env.SCHEDULE_LINK);
-      addButton(buttons, "📺 Stream", env.STREAM_LINK);
+      addButton(
+        buttons,
+        "🏏 CRICZONE HUB",
+        env.GROUP_LINK
+      );
+
+      addButton(
+        buttons,
+        "📢 Main Channel",
+        env.MAIN_CHANNEL_LINK
+      );
+
+      addButton(
+        buttons,
+        "🔄 Backup Channel",
+        env.BACKUP_CHANNEL_LINK
+      );
+
+      addButton(
+        buttons,
+        "🔴 Live",
+        env.LIVE_LINK
+      );
+
+      addButton(
+        buttons,
+        "📊 Score",
+        env.SCORE_LINK
+      );
+
+      addButton(
+        buttons,
+        "📅 Schedule",
+        env.SCHEDULE_LINK
+      );
+
+      addButton(
+        buttons,
+        "📺 Stream",
+        env.STREAM_LINK
+      );
 
       await sendMessage(
         env.BOT_TOKEN,
@@ -326,6 +423,7 @@ Your cricket community for:
     // =========================
 
     else if (command === "/admin") {
+
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
@@ -342,6 +440,7 @@ Your cricket community for:
     // =========================
 
     else if (command === "/id") {
+
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
@@ -356,6 +455,7 @@ ${chatId}`
     // =========================
 
     else if (command === "/info") {
+
       const user = msg.from;
 
       await sendMessage(
@@ -364,22 +464,34 @@ ${chatId}`
         `👤 USER INFO
 
 Name: ${user.first_name || "N/A"}
-Username: ${user.username ? "@" + user.username : "N/A"}
+Username: ${
+          user.username
+            ? "@" + user.username
+            : "N/A"
+        }
 User ID: ${user.id}`
       );
     }
 
-    // =========================
+    // ==================================================
     // MODERATION
-    // =========================
+    // ==================================================
 
     else if (
-      ["/warn", "/warnings", "/ban", "/unban",
-       "/mute", "/unmute", "/kick", "/del"]
-      .includes(command)
+      [
+        "/warn",
+        "/warnings",
+        "/ban",
+        "/unban",
+        "/mute",
+        "/unmute",
+        "/kick",
+        "/del"
+      ].includes(command)
     ) {
 
       if (chatType === "private") {
+
         await sendMessage(
           env.BOT_TOKEN,
           chatId,
@@ -396,6 +508,7 @@ User ID: ${user.id}`
       );
 
       if (!admin) {
+
         await sendMessage(
           env.BOT_TOKEN,
           chatId,
@@ -409,12 +522,14 @@ User ID: ${user.id}`
       // TARGET USER
       // =====================
 
-      const targetMessage = msg.reply_to_message;
+      const targetMessage =
+        msg.reply_to_message;
 
       if (
         !targetMessage ||
         !targetMessage.from
       ) {
+
         await sendMessage(
           env.BOT_TOKEN,
           chatId,
@@ -424,21 +539,30 @@ User ID: ${user.id}`
         return new Response("OK");
       }
 
-      const target = targetMessage.from;
-      const targetId = target.id;
+      const target =
+        targetMessage.from;
+
+      const targetId =
+        target.id;
+
       const targetName =
         target.first_name ||
         target.username ||
         "User";
 
-      // Don't moderate admins
-      const targetIsAdmin = await isAdmin(
-        env.BOT_TOKEN,
-        chatId,
-        targetId
-      );
+      // =====================
+      // DON'T MODERATE ADMINS
+      // =====================
+
+      const targetIsAdmin =
+        await isAdmin(
+          env.BOT_TOKEN,
+          chatId,
+          targetId
+        );
 
       if (targetIsAdmin) {
+
         await sendMessage(
           env.BOT_TOKEN,
           chatId,
@@ -453,6 +577,7 @@ User ID: ${user.id}`
       // =====================
 
       if (command === "/del") {
+
         await deleteMessage(
           env.BOT_TOKEN,
           chatId,
@@ -469,12 +594,13 @@ User ID: ${user.id}`
       }
 
       // =====================
-      // WARNINGS
+      // WARN
       // =====================
 
       if (command === "/warn") {
 
         if (!env.BOT_KV) {
+
           await sendMessage(
             env.BOT_TOKEN,
             chatId,
@@ -484,10 +610,13 @@ User ID: ${user.id}`
           return new Response("OK");
         }
 
-        const key = `warnings:${chatId}:${targetId}`;
+        const key =
+          `warnings:${chatId}:${targetId}`;
 
         let warnings =
-          Number(await env.BOT_KV.get(key)) || 0;
+          Number(
+            await env.BOT_KV.get(key)
+          ) || 0;
 
         warnings++;
 
@@ -499,7 +628,9 @@ User ID: ${user.id}`
             targetId
           );
 
-          await env.BOT_KV.delete(key);
+          await env.BOT_KV.delete(
+            key
+          );
 
           await sendMessage(
             env.BOT_TOKEN,
@@ -537,6 +668,7 @@ Please follow the group rules.`
       if (command === "/warnings") {
 
         if (!env.BOT_KV) {
+
           await sendMessage(
             env.BOT_TOKEN,
             chatId,
@@ -550,7 +682,9 @@ Please follow the group rules.`
           `warnings:${chatId}:${targetId}`;
 
         const warnings =
-          Number(await env.BOT_KV.get(key)) || 0;
+          Number(
+            await env.BOT_KV.get(key)
+          ) || 0;
 
         await sendMessage(
           env.BOT_TOKEN,
@@ -676,13 +810,14 @@ Please follow the group rules.`
       }
     }
 
-    // =========================
+    // ==================================================
     // AUTO REPLIES
-    // =========================
+    // ==================================================
 
     if (!text.startsWith("/")) {
 
-      const lower = text.toLowerCase();
+      const lower =
+        text.toLowerCase();
 
       if (
         lower.includes("match link") ||
@@ -777,16 +912,18 @@ async function sendMessage(
     body.reply_markup = replyMarkup;
   }
 
-  await fetch(url, {
+  await fetch(
+    url,
+    {
+      method: "POST",
 
-    method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
 
-    headers: {
-      "Content-Type": "application/json"
-    },
-
-    body: JSON.stringify(body)
-  });
+      body: JSON.stringify(body)
+    }
+  );
 }
 
 
@@ -794,7 +931,10 @@ async function sendMessage(
 // SINGLE BUTTON
 // ==================================================
 
-function singleButton(text, url) {
+function singleButton(
+  text,
+  url
+) {
 
   if (!url) {
     return null;
@@ -817,7 +957,11 @@ function singleButton(text, url) {
 // ADD BUTTON
 // ==================================================
 
-function addButton(rows, text, url) {
+function addButton(
+  rows,
+  text,
+  url
+) {
 
   if (!url) {
     return;
@@ -839,7 +983,10 @@ function addButton(rows, text, url) {
 function escapeText(text) {
 
   return String(text)
-    .replace(/[<>&]/g, "");
+    .replace(
+      /[<>&]/g,
+      ""
+    );
 }
 
 
@@ -885,7 +1032,7 @@ async function deleteMessage(
   messageId
 ) {
 
-  await telegramMethod(
+  return telegramMethod(
     token,
     "deleteMessage",
     {
@@ -939,6 +1086,7 @@ async function unbanUser(
 }
 
 
+
 // ==================================================
 // MUTE 1 HOUR
 // ==================================================
@@ -950,7 +1098,9 @@ async function muteUser(
 ) {
 
   const until =
-    Math.floor(Date.now() / 1000) + 3600;
+    Math.floor(
+      Date.now() / 1000
+    ) + 3600;
 
   return telegramMethod(
     token,
@@ -1030,16 +1180,18 @@ async function telegramMethod(
     `https://api.telegram.org/bot${token}/${method}`;
 
   const response =
-    await fetch(url, {
+    await fetch(
+      url,
+      {
+        method: "POST",
 
-      method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
 
-      headers: {
-        "Content-Type": "application/json"
-      },
-
-      body: JSON.stringify(payload)
-    });
+        body: JSON.stringify(payload)
+      }
+    );
 
   return response.json();
-        }
+} 
