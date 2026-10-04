@@ -20,7 +20,7 @@ export default {
             await sendMessage(
               env.BOT_TOKEN,
               chatId,
-              "🏏 Welcome to CRICZONE!\n\nUse /mention to get the group link."
+              "🏏 Welcome to CRICZONE!\n\nUse /mention to get the group link.."
             );
           }
 
