@@ -72,7 +72,7 @@ export async function onRequest(context) {
         const welcome = await getBotSetting(
           env.BOT_KV,
           "WELCOME_MESSAGE",
-          "🏏 Welcome to CRICZONE!\n\nChoose an option below 👇"
+          "🏏 <b>WELCOME TO CRICZONE</b>\n\n🔥 Your all-in-one cricket hub\n📢 Channels • 🔴 Live • 📊 Score • 📅 Schedule\n\n👇 <b>Choose what you need:</b>"
         );
 
         await editMessageText(
@@ -92,9 +92,11 @@ export async function onRequest(context) {
           const raw = await env.BOT_KV?.get("settings:VS_MATCH");
           match = raw ? JSON.parse(raw) : {};
         } catch {}
+        const status = String(match.status || "Upcoming");
+        const statusIcon = /live/i.test(status) ? "🔴" : /complete|finished/i.test(status) ? "✅" : "🟢";
         const text = match.team_a && match.team_b
-          ? `⚔️ VS MATCH\n\n🏏 ${match.team_a} vs ${match.team_b}\n📅 ${match.date || "TBA"}\n⏰ ${match.time || "TBA"}\n📍 ${match.venue || "TBA"}\n📌 Status: ${match.status || "Upcoming"}`
-          : "⚔️ VS MATCH\n\nMatch details are not configured yet.";
+          ? `⚔️ <b>VS MATCH</b>\n\n🏏 <b>${match.team_a}</b>  🆚  <b>${match.team_b}</b>\n\n📅 ${match.date || "TBA"}\n⏰ ${match.time || "TBA"}\n📍 ${match.venue || "TBA"}\n${statusIcon} <b>Status:</b> ${status}`
+          : "⚔️ <b>VS MATCH</b>\n\nNo match has been configured yet.\n\nCheck back soon!";
         const buttons = [];
         const link = match.link || await getLink(env,"VS_MATCH_LINK",env.VS_MATCH_LINK);
         if (link) buttons.push([{text:"🏏 Open Match Link",url:link}]);
@@ -107,7 +109,7 @@ export async function onRequest(context) {
         const key = data.slice(5);
 
         const labels = {
-          GROUP_LINK: "🏏 CRICZONE HUB",
+          GROUP_LINK: "🏏 Join Hub",
           MAIN_CHANNEL_LINK: "📢 Main Channel",
           BACKUP_CHANNEL_LINK: "🔄 Backup Channel",
           VS_MATCH_LINK: "⚔️ VS MATCH",
@@ -167,7 +169,7 @@ export async function onRequest(context) {
             env.BOT_TOKEN,
             callbackChatId,
             callbackMessageId,
-            "⚠️ This link is not configured yet.",
+            "⚠️ <b>Link unavailable</b>\n\nThis destination has not been configured yet.",
             {
               inline_keyboard: [
                 [
@@ -207,14 +209,14 @@ export async function onRequest(context) {
         }
 
         buttons.push([
-          { text: "⬅️ Back", callback_data: "menu" }
+          { text: "🏠 Home", callback_data: "menu" }
         ]);
 
         await editMessageText(
           env.BOT_TOKEN,
           callbackChatId,
           callbackMessageId,
-          "🔗 CRICZONE IMPORTANT LINKS 👇",
+          "🔗 <b>CRICZONE IMPORTANT LINKS</b>\n\nChoose a destination below 👇",
           { inline_keyboard: buttons }
         );
 
@@ -235,7 +237,7 @@ export async function onRequest(context) {
           rules,
           {
             inline_keyboard: [
-              [{ text: "⬅️ Back", callback_data: "menu" }]
+              [{ text: "🏠 Home", callback_data: "menu" }]
             ]
           }
         );
@@ -385,7 +387,7 @@ export async function onRequest(context) {
       // Remove the old command-list instruction from saved welcome text.
       welcome = welcome.replace(
         /Use \/help[^\\n]*/gi,
-        "Choose an option below 👇"
+        "👇 Choose an option below"
       );
 
       await sendMessage(
@@ -406,7 +408,7 @@ export async function onRequest(context) {
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
-        "🏏 CRICZONE MENU\n\nChoose an option below 👇",
+        "🏏 <b>CRICZONE MENU</b>\n\n🔥 Fast access to everything\n👇 Select an option below",
         await buildMainMenu(env)
       );
 
@@ -1205,7 +1207,7 @@ Please follow the group rules.`
         await sendMessage(
           env.BOT_TOKEN,
           chatId,
-          "🏏 Hello! Welcome to CRICZONE 🔥\n\nUse /menu or /help to get started."
+          "🏏 <b>Hello! Welcome to CRICZONE</b> 🔥\n\nYour cricket hub is ready.\n👇 Tap <b>Menu</b> to explore."
         );
         return new Response("OK");
       }
@@ -1323,10 +1325,10 @@ Please follow the group rules.`
 
 async function buildMainMenu(env) {
   const defaults = [
-    ["🏏 HUB","GROUP_LINK"],["📢 Main","MAIN_CHANNEL_LINK"],
-    ["🔄 Backup","BACKUP_CHANNEL_LINK"],["⚔️ VS Match","VS_MATCH_LINK"],
+    ["🏏 Hub","GROUP_LINK"],["📢 Main","MAIN_CHANNEL_LINK"],
     ["🔴 Live","LIVE_LINK"],["📊 Score","SCORE_LINK"],
-    ["📅 Schedule","SCHEDULE_LINK"],["📺 Stream","STREAM_LINK"],
+    ["⚔️ VS Match","VS_MATCH_LINK"],["📅 Schedule","SCHEDULE_LINK"],
+    ["📺 Stream","STREAM_LINK"],["🔄 Backup","BACKUP_CHANNEL_LINK"],
     ["🔗 All Links","ALL_LINKS"],["📜 Rules","RULES"],
     ["ℹ️ About","ABOUT"],["👨‍💻 Admin","ADMIN_LINK"]
   ];
@@ -1346,7 +1348,8 @@ async function buildMainMenu(env) {
   for (const [label,key] of items) {
     const callback = key === "ALL_LINKS" ? "all_links" :
       key === "RULES" ? "rules" :
-      key === "ABOUT" ? "about" : "open:" + key;
+      key === "ABOUT" ? "about" :
+      key === "HOME" ? "menu" : "open:" + key;
     row.push({text:label,callback_data:callback});
     if (row.length === 2) { rows.push(row); row=[]; }
   }
