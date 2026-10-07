@@ -1707,10 +1707,12 @@ async function broadcast() {
   const media=document.getElementById("broadcastMedia").value.trim();
   const button_url=document.getElementById("broadcastButtonUrl").value.trim();
   const button_text=document.getElementById("broadcastButtonText").value.trim();
+  const audience=document.getElementById("broadcastAudience")?.value||"all";
   if(!message && type==="text"){alert("Write a message first.");return;}
   if((type==="photo"||type==="video")&&!media){alert("Media URL/file_id required.");return;}
-  if(!confirm("Send this broadcast to all registered users?"))return;
-  const response=await fetch("/api/admin",{method:"POST",headers:{"Content-Type":"application/json","X-Admin-Key":ADMIN_KEY},body:JSON.stringify({action:"broadcast",type,message,media,button_url,button_text})});
+  const names={all:"all registered users",active24h:"users active in the last 24h",notify_on:"users with notifications ON"};
+  if(!confirm("Send this broadcast to "+(names[audience]||"selected users")+"?"))return;
+  const response=await fetch("/api/admin",{method:"POST",headers:{"Content-Type":"application/json","X-Admin-Key":ADMIN_KEY},body:JSON.stringify({action:"broadcast",type,message,media,button_url,button_text,audience})});
   const data=await response.json();
   document.getElementById("broadcastResult").textContent=data.ok?"Sent: "+data.sent+" | Failed: "+data.failed+" | Total: "+data.total:"Error: "+data.error;
   if(data.ok){document.getElementById("broadcastMessage").value="";document.getElementById("broadcastMedia").value="";updateBroadcastPreview();}
