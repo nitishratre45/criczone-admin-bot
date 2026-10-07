@@ -2262,8 +2262,6 @@ async function loadModerationStats(){const d=await adminGet("moderation_stats"),
 async function moderate(operation){const d=await adminPost({action:"moderate",chat_id:modChatId.value,user_id:modUserId.value,operation});modResult.textContent=d.ok?operation+" completed!":"Error: "+d.error;loadModerationStats();}
 async function loadActivity(){const d=await adminGet("activity"),b=activityBody;b.innerHTML="";(d.logs||[]).forEach(x=>{const r=document.createElement("tr");r.innerHTML="<td>"+escapeHTML(x.created_at?new Date(x.created_at).toLocaleString():"—")+"</td><td>"+escapeHTML(x.type||"")+"</td><td>"+escapeHTML(x.message||"")+"</td>";b.appendChild(r);});}
 
-async function moderate(operation){const d=await adminPost({action:"moderate",chat_id:modChatId.value,user_id:modUserId.value,operation});modResult.textContent=d.ok?operation+" completed!":"Error: "+d.error;}
-async function loadActivity(){const d=await adminGet("activity"),b=activityBody;b.innerHTML="";(d.logs||[]).forEach(x=>{const r=document.createElement("tr");r.innerHTML="<td>"+escapeHTML(x.created_at?new Date(x.created_at).toLocaleString():"—")+"</td><td>"+escapeHTML(x.type||"")+"</td><td>"+escapeHTML(x.message||"")+"</td>";b.appendChild(r);});}
 </script>
 
 </body>
