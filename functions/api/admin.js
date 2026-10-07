@@ -240,7 +240,7 @@ export async function onRequest(context) {
         if (runAtMs <= Date.now()) {
           return json({ ok:false, error:"Scheduled time must be in the future" }, 400, cors);
         }
-        if (schedule.button_url && !/^https?:\\/\\//i.test(schedule.button_url)) {
+        if (schedule.button_url && !(schedule.button_url.startsWith("http://") || schedule.button_url.startsWith("https://"))) {
           return json({ ok:false, error:"Button URL must start with http:// or https://" }, 400, cors);
         }
         if ((schedule.type === "photo" || schedule.type === "video") && !schedule.media) {
