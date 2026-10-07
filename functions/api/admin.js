@@ -38,6 +38,9 @@ export async function onRequest(context) {
         const now = Date.now();
         const day = 86400000;
         const growth = { today: 0, last7: 0, last30: 0 };
+        let active24h = 0;
+        let delivered = 0;
+        let failed = 0;
         for (const key of users) {
           const raw = await env.BOT_KV.get(key.name);
           try {
@@ -48,9 +51,19 @@ export async function onRequest(context) {
               if (now - t < 7 * day) growth.last7++;
               if (now - t < 30 * day) growth.last30++;
             }
+            const active = Date.parse(u.last_active_at || "");
+            if (!Number.isNaN(active) && now - active < day) active24h++;
           } catch {}
         }
-        return json({ ok: true, users: users.length, broadcasts: broadcasts.length, activity: activity.length, growth }, 200, cors);
+        for (const key of broadcasts) {
+          const raw = await env.BOT_KV.get(key.name);
+          try {
+            const b = raw ? JSON.parse(raw) : {};
+            delivered += Number(b.sent || 0);
+            failed += Number(b.failed || 0);
+          } catch {}
+        }
+        return json({ ok: true, users: users.length, broadcasts: broadcasts.length, activity: activity.length, growth, active24h, delivered, failed }, 200, cors);
       }
 
       if (view === "activity") {
