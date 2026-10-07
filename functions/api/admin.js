@@ -8,12 +8,9 @@ export async function onRequest(context) {
     "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key"
   };
 
-  if (request.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: cors });
-  }
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
 
   const adminKey = request.headers.get("X-Admin-Key");
-
   if (!env.ADMIN_KEY || adminKey !== env.ADMIN_KEY) {
     return json({ ok: false, error: "Unauthorized" }, 401, cors);
   }
@@ -25,240 +22,203 @@ export async function onRequest(context) {
       const search = (url.searchParams.get("q") || "").trim().toLowerCase();
 
       if (view === "history") {
-        const historyKeys = await listAllKeys(env.BOT_KV, "broadcast:");
+        const keys = await listAllKeys(env.BOT_KV, "broadcast:");
         const history = [];
-
-        for (const key of historyKeys.slice(-50).reverse()) {
+        for (const key of keys.slice(-100).reverse()) {
           const raw = await env.BOT_KV.get(key.name);
-          try {
-            history.push(raw ? JSON.parse(raw) : {});
-          } catch {}
+          try { if (raw) history.push(JSON.parse(raw)); } catch {}
         }
-
         return json({ ok: true, history }, 200, cors);
       }
 
-      if (view === "users") {
+      if (view === "analytics") {
         const users = await listAllKeys(env.BOT_KV, "users:");
-        const result = [];
-
+        const broadcasts = await listAllKeys(env.BOT_KV, "broadcast:");
+        const activity = await listAllKeys(env.BOT_KV, "activity:");
+        const now = Date.now();
+        const day = 86400000;
+        const growth = { today: 0, last7: 0, last30: 0 };
         for (const key of users) {
-          if (result.length >= 100) break;
+          const raw = await env.BOT_KV.get(key.name);
+          try {
+            const u = raw ? JSON.parse(raw) : {};
+            const t = Date.parse(u.joined_at || "");
+            if (!Number.isNaN(t)) {
+              if (now - t < day) growth.today++;
+              if (now - t < 7 * day) growth.last7++;
+              if (now - t < 30 * day) growth.last30++;
+            }
+          } catch {}
+        }
+        return json({ ok: true, users: users.length, broadcasts: broadcasts.length, activity: activity.length, growth }, 200, cors);
+      }
 
+      if (view === "users") {
+        const keys = await listAllKeys(env.BOT_KV, "users:");
+        const result = [];
+        for (const key of keys) {
+          if (result.length >= 250) break;
           const raw = await env.BOT_KV.get(key.name);
           let user = {};
-
-          try {
-            user = raw ? JSON.parse(raw) : {};
-          } catch {}
-
-          const haystack = [
-            user.first_name || "",
-            user.username || "",
-            user.user_id || key.name.replace("users:", "")
-          ].join(" ").toLowerCase();
-
+          try { user = raw ? JSON.parse(raw) : {}; } catch {}
+          const userId = user.user_id || key.name.replace("users:", "");
+          const haystack = [user.first_name || "", user.username || "", userId].join(" ").toLowerCase();
           if (!search || haystack.includes(search)) {
             result.push({
-              user_id: user.user_id || key.name.replace("users:", ""),
+              user_id: userId,
               first_name: user.first_name || "Unknown",
               username: user.username || "",
-              joined_at: user.joined_at || ""
+              joined_at: user.joined_at || "",
+              status: user.status || "registered"
             });
           }
         }
-
-        return json({
-          ok: true,
-          users: result,
-          total: users.length
-        }, 200, cors);
+        return json({ ok: true, users: result, total: keys.length }, 200, cors);
       }
 
-      const config = {};
-      const linkKeys = [
-        "ADMIN_LINK",
-        "BACKUP_CHANNEL_LINK",
-        "GROUP_LINK",
-        "LIVE_LINK",
-        "MAIN_CHANNEL_LINK",
-        "SCORE_LINK",
-        "SCHEDULE_LINK",
-        "STREAM_LINK",
-        "VS_MATCH_LINK"
-      ];
-
-      for (const key of linkKeys) {
-        const value = env.BOT_KV
-          ? await env.BOT_KV.get(`config:${key}`)
-          : null;
-        config[key] = value || env[key] || "";
+      if (view === "config") {
+        return json(await getDashboardData(env), 200, cors);
       }
 
-      const settings = {
-        WELCOME_MESSAGE: await getKV(env.BOT_KV, "settings:WELCOME_MESSAGE", "🏏 Welcome to CRICZONE!\n\nUse /help to see all commands."),
-        RULES_MESSAGE: await getKV(env.BOT_KV, "settings:RULES_MESSAGE", "📜 CRICZONE HUB — RULES\n\n1️⃣ Respect everyone.\n2️⃣ No spam.\n3️⃣ No abuse or personal attacks.\n4️⃣ No fake/scam links.\n5️⃣ No unwanted promotion.\n6️⃣ No NSFW content.\n7️⃣ Keep discussion related to cricket.\n8️⃣ Follow admin instructions.\n9️⃣ 3 warnings = Permanent Ban 🚫"),
-        ABOUT_MESSAGE: await getKV(env.BOT_KV, "settings:ABOUT_MESSAGE", "🏏 CRICZONE\n\nYour cricket community for match updates, live scores, schedules and cricket news.")
-      };
-
-      const users = env.BOT_KV
-        ? await listAllKeys(env.BOT_KV, "users:")
-        : [];
-
-      return json({
-        ok: true,
-        bot: { status: "online" },
-        users: users.length,
-        config,
-        settings
-      }, 200, cors);
+      const data = await getDashboardData(env);
+      return json(data, 200, cors);
     }
 
     if (request.method === "POST") {
       const body = await request.json();
+      const action = body.action;
 
-      if (body.action === "save_config") {
-        if (!env.BOT_KV) {
-          return json({ ok: false, error: "BOT_KV is not configured" }, 500, cors);
+      if (!env.BOT_KV && !["health"].includes(action)) {
+        return json({ ok: false, error: "BOT_KV is not configured" }, 500, cors);
+      }
+
+      if (action === "save_config") {
+        for (const key of LINK_KEYS) {
+          if (typeof body.config?.[key] === "string") await env.BOT_KV.put("config:" + key, body.config[key].trim());
         }
-
-        const allowed = [
-          "ADMIN_LINK",
-          "BACKUP_CHANNEL_LINK",
-          "GROUP_LINK",
-          "LIVE_LINK",
-          "MAIN_CHANNEL_LINK",
-          "SCORE_LINK",
-          "SCHEDULE_LINK",
-          "STREAM_LINK",
-          "VS_MATCH_LINK"
-        ];
-
-        for (const key of allowed) {
-          if (typeof body.config?.[key] === "string") {
-            await env.BOT_KV.put(`config:${key}`, body.config[key].trim());
-          }
-        }
-
+        await logActivity(env, "config", "Links updated");
         return json({ ok: true, message: "Configuration saved successfully" }, 200, cors);
       }
 
-      if (body.action === "save_settings") {
-        if (!env.BOT_KV) {
-          return json({ ok: false, error: "BOT_KV is not configured" }, 500, cors);
+      if (action === "reset_config") {
+        for (const key of LINK_KEYS) await env.BOT_KV.delete("config:" + key);
+        await logActivity(env, "config", "Links reset");
+        return json({ ok: true, message: "Configuration reset" }, 200, cors);
+      }
+
+      if (action === "save_settings") {
+        for (const key of SETTING_KEYS) {
+          if (typeof body.settings?.[key] === "string") await env.BOT_KV.put("settings:" + key, body.settings[key].trim());
         }
-
-        const allowed = [
-          "WELCOME_MESSAGE",
-          "RULES_MESSAGE",
-          "ABOUT_MESSAGE"
-        ];
-
-        for (const key of allowed) {
-          if (typeof body.settings?.[key] === "string") {
-            await env.BOT_KV.put(`settings:${key}`, body.settings[key].trim());
-          }
-        }
-
+        await logActivity(env, "settings", "Bot messages updated");
         return json({ ok: true, message: "Bot settings saved successfully" }, 200, cors);
       }
 
-      if (body.action === "broadcast") {
-        const message = String(body.message || "").trim();
+      if (action === "save_menu") {
+        const menu = Array.isArray(body.menu) ? body.menu.slice(0, 30).map((x, i) => ({
+          label: String(x.label || "").slice(0, 50),
+          key: String(x.key || "").slice(0, 60),
+          visible: x.visible !== false,
+          order: Number.isFinite(Number(x.order)) ? Number(x.order) : i
+        })).filter(x => x.label && x.key) : [];
+        await env.BOT_KV.put("settings:MENU_CONFIG", JSON.stringify(menu));
+        await logActivity(env, "menu", "User menu updated");
+        return json({ ok: true, menu }, 200, cors);
+      }
 
-        if (!message) {
-          return json({ ok: false, error: "Message is required" }, 400, cors);
-        }
-
-        if (!env.BOT_KV) {
-          return json({ ok: false, error: "BOT_KV is not configured" }, 500, cors);
-        }
-
-        const users = await listAllKeys(env.BOT_KV, "users:");
-        let sent = 0;
-        let failed = 0;
-
-        for (const key of users) {
-          const userId = key.name.replace("users:", "");
-
-          try {
-            const result = await telegramMethod(
-              env.BOT_TOKEN,
-              "sendMessage",
-              { chat_id: userId, text: message }
-            );
-
-            if (result.ok) sent++;
-            else failed++;
-          } catch {
-            failed++;
-          }
-        }
-
-        const historyRecord = {
-          id: Date.now().toString(),
-          created_at: new Date().toISOString(),
-          sent,
-          failed,
-          total: users.length,
-          preview: message.slice(0, 160)
+      if (action === "save_vs_match") {
+        const match = {
+          team_a: String(body.match?.team_a || "").slice(0, 80),
+          team_b: String(body.match?.team_b || "").slice(0, 80),
+          date: String(body.match?.date || "").slice(0, 40),
+          time: String(body.match?.time || "").slice(0, 20),
+          venue: String(body.match?.venue || "").slice(0, 120),
+          status: String(body.match?.status || "Upcoming").slice(0, 30),
+          link: String(body.match?.link || "").trim()
         };
-
-        try {
-          await env.BOT_KV.put(
-            `broadcast:${historyRecord.id}`,
-            JSON.stringify(historyRecord),
-            { expirationTtl: 60 * 60 * 24 * 30 }
-          );
-        } catch {}
-
-        return json({
-          ok: true,
-          sent,
-          failed,
-          total: users.length
-        }, 200, cors);
+        await env.BOT_KV.put("settings:VS_MATCH", JSON.stringify(match));
+        if (match.link) await env.BOT_KV.put("config:VS_MATCH_LINK", match.link);
+        await logActivity(env, "vs_match", match.team_a + " vs " + match.team_b);
+        return json({ ok: true, match }, 200, cors);
       }
 
-      if (body.action === "delete_user") {
+      if (action === "broadcast") {
+        return await handleBroadcast(env, body, cors);
+      }
+
+      if (action === "save_schedule") {
+        const schedule = {
+          id: String(body.schedule?.id || Date.now()),
+          enabled: body.schedule?.enabled !== false,
+          run_at: String(body.schedule?.run_at || ""),
+          type: String(body.schedule?.type || "text"),
+          message: String(body.schedule?.message || "").slice(0, 4000),
+          button_text: String(body.schedule?.button_text || "").slice(0, 80),
+          button_url: String(body.schedule?.button_url || "").trim()
+        };
+        await env.BOT_KV.put("schedule:" + schedule.id, JSON.stringify(schedule));
+        await logActivity(env, "schedule", "Scheduled broadcast saved");
+        return json({ ok: true, schedule }, 200, cors);
+      }
+
+      if (action === "delete_schedule") {
+        const id = String(body.id || "");
+        if (id) await env.BOT_KV.delete("schedule:" + id);
+        return json({ ok: true }, 200, cors);
+      }
+
+      if (action === "delete_user") {
         const userId = String(body.user_id || "").trim();
-
-        if (!userId || !/^\d+$/.test(userId)) {
-          return json({ ok: false, error: "Valid user ID is required" }, 400, cors);
-        }
-
-        if (!env.BOT_KV) {
-          return json({ ok: false, error: "BOT_KV is not configured" }, 500, cors);
-        }
-
-        await env.BOT_KV.delete(`users:${userId}`);
-
-        return json({
-          ok: true,
-          message: "User removed from registered users"
-        }, 200, cors);
+        if (!/^\d+$/.test(userId)) return json({ ok: false, error: "Valid user ID is required" }, 400, cors);
+        await env.BOT_KV.delete("users:" + userId);
+        await logActivity(env, "user", "Removed user " + userId);
+        return json({ ok: true, message: "User removed" }, 200, cors);
       }
 
-      if (body.action === "reset_config") {
-        const keys = [
-          "ADMIN_LINK",
-          "BACKUP_CHANNEL_LINK",
-          "GROUP_LINK",
-          "LIVE_LINK",
-          "MAIN_CHANNEL_LINK",
-          "SCORE_LINK",
-          "SCHEDULE_LINK",
-          "STREAM_LINK",
-          "VS_MATCH_LINK"
-        ];
-
-        if (env.BOT_KV) {
-          for (const key of keys) {
-            await env.BOT_KV.delete(`config:${key}`);
-          }
+      if (action === "moderate") {
+        const chatId = String(body.chat_id || "").trim();
+        const userId = String(body.user_id || "").trim();
+        const operation = String(body.operation || "");
+        if (!chatId || !userId || !["ban","unban","mute","unmute","kick","warn"].includes(operation)) {
+          return json({ ok: false, error: "chat_id, user_id and a valid operation are required" }, 400, cors);
         }
+        if (operation === "warn") {
+          const key = "warnings:" + chatId + ":" + userId;
+          const count = (Number(await env.BOT_KV.get(key)) || 0) + 1;
+          if (count >= 3) {
+            await telegramMethod(env.BOT_TOKEN, "banChatMember", { chat_id: chatId, user_id: userId });
+            await env.BOT_KV.delete(key);
+          } else {
+            await env.BOT_KV.put(key, String(count));
+          }
+        } else if (operation === "ban" || operation === "kick") {
+          await telegramMethod(env.BOT_TOKEN, "banChatMember", { chat_id: chatId, user_id: userId });
+          if (operation === "kick") await telegramMethod(env.BOT_TOKEN, "unbanChatMember", { chat_id: chatId, user_id: userId, only_if_banned: true });
+        } else if (operation === "unban") {
+          await telegramMethod(env.BOT_TOKEN, "unbanChatMember", { chat_id: chatId, user_id: userId, only_if_banned: true });
+        } else if (operation === "mute") {
+          await telegramMethod(env.BOT_TOKEN, "restrictChatMember", {
+            chat_id: chatId, user_id: userId, until_date: Math.floor(Date.now()/1000)+3600,
+            permissions: { can_send_messages:false, can_send_audios:false, can_send_documents:false, can_send_photos:false, can_send_videos:false, can_send_video_notes:false, can_send_voice_notes:false, can_send_polls:false, can_send_other_messages:false, can_add_web_page_previews:false }
+          });
+        } else if (operation === "unmute") {
+          await telegramMethod(env.BOT_TOKEN, "restrictChatMember", {
+            chat_id: chatId, user_id: userId,
+            permissions: { can_send_messages:true, can_send_audios:true, can_send_documents:true, can_send_photos:true, can_send_videos:true, can_send_video_notes:true, can_send_voice_notes:true, can_send_polls:true, can_send_other_messages:true, can_add_web_page_previews:true }
+          });
+        }
+        await logActivity(env, "moderation", operation + " user " + userId);
+        return json({ ok: true, operation }, 200, cors);
+      }
 
-        return json({ ok: true, message: "Configuration reset" }, 200, cors);
+      if (action === "activity") {
+        const keys = await listAllKeys(env.BOT_KV, "activity:");
+        const logs = [];
+        for (const key of keys.slice(-100).reverse()) {
+          const raw = await env.BOT_KV.get(key.name);
+          try { if (raw) logs.push(JSON.parse(raw)); } catch {}
+        }
+        return json({ ok: true, logs }, 200, cors);
       }
     }
 
@@ -269,46 +229,98 @@ export async function onRequest(context) {
   }
 }
 
-async function listAllKeys(kv, prefix) {
-  if (!kv) return [];
+const LINK_KEYS = [
+  "ADMIN_LINK","BACKUP_CHANNEL_LINK","GROUP_LINK","LIVE_LINK","MAIN_CHANNEL_LINK",
+  "SCORE_LINK","SCHEDULE_LINK","STREAM_LINK","VS_MATCH_LINK"
+];
+const SETTING_KEYS = ["WELCOME_MESSAGE","RULES_MESSAGE","ABOUT_MESSAGE","MENU_CONFIG","VS_MATCH"];
 
-  const keys = [];
-  let cursor = undefined;
+async function getDashboardData(env) {
+  const config = {};
+  for (const key of LINK_KEYS) {
+    config[key] = await getKV(env.BOT_KV, "config:" + key, env[key] || "");
+  }
+  const settings = {};
+  for (const key of SETTING_KEYS) {
+    settings[key] = await getKV(env.BOT_KV, "settings:" + key, defaultSetting(key));
+  }
+  const users = await listAllKeys(env.BOT_KV, "users:");
+  const broadcasts = await listAllKeys(env.BOT_KV, "broadcast:");
+  const schedules = await listAllKeys(env.BOT_KV, "schedule:");
+  const activity = await listAllKeys(env.BOT_KV, "activity:");
+  return { ok:true, bot:{status:"online"}, users:users.length, broadcasts:broadcasts.length, schedules:schedules.length, activity:activity.length, config, settings };
+}
 
+function defaultSetting(key) {
+  if (key === "WELCOME_MESSAGE") return "🏏 Welcome to CRICZONE!\n\nChoose an option below 👇";
+  if (key === "RULES_MESSAGE") return "📜 CRICZONE HUB — RULES\n\n1️⃣ Respect everyone.\n2️⃣ No spam.\n3️⃣ No abuse or personal attacks.\n4️⃣ No fake/scam links.\n5️⃣ No unwanted promotion.\n6️⃣ No NSFW content.\n7️⃣ Keep discussion related to cricket.\n8️⃣ Follow admin instructions.\n9️⃣ 3 warnings = Permanent Ban 🚫";
+  if (key === "ABOUT_MESSAGE") return "🏏 CRICZONE\n\nYour cricket community for match updates, live scores, schedules and cricket news.";
+  if (key === "MENU_CONFIG") return JSON.stringify([]);
+  if (key === "VS_MATCH") return JSON.stringify({team_a:"",team_b:"",date:"",time:"",venue:"",status:"Upcoming",link:""});
+  return "";
+}
+
+async function handleBroadcast(env, body, cors) {
+  const type = String(body.type || "text");
+  const message = String(body.message || "").trim();
+  if (!message && type === "text") return json({ok:false,error:"Message is required"},400,cors);
+  const users = await listAllKeys(env.BOT_KV, "users:");
+  let sent=0, failed=0;
+  const reply_markup = body.button_url ? {inline_keyboard:[[{
+    text:String(body.button_text||"Open").slice(0,80), url:String(body.button_url).trim()
+  }]]} : undefined;
+
+  for (const key of users) {
+    const chat_id = key.name.replace("users:","");
+    try {
+      let result;
+      if (type === "photo") {
+        result = await telegramMethod(env.BOT_TOKEN,"sendPhoto",{chat_id,photo:String(body.media||"").trim(),caption:message||undefined,reply_markup});
+      } else if (type === "video") {
+        result = await telegramMethod(env.BOT_TOKEN,"sendVideo",{chat_id,video:String(body.media||"").trim(),caption:message||undefined,reply_markup});
+      } else {
+        result = await telegramMethod(env.BOT_TOKEN,"sendMessage",{chat_id,text:message,reply_markup});
+      }
+      result?.ok ? sent++ : failed++;
+    } catch { failed++; }
+  }
+
+  const record = {
+    id:Date.now().toString(), created_at:new Date().toISOString(), type,
+    sent,failed,total:users.length,preview:(message||"").slice(0,160),
+    media:type==="text" ? "" : String(body.media||"").slice(0,250),
+    button_url:String(body.button_url||"")
+  };
+  try { await env.BOT_KV.put("broadcast:"+record.id,JSON.stringify(record),{expirationTtl:60*60*24*90}); } catch {}
+  await logActivity(env,"broadcast","Sent "+type+" broadcast to "+users.length+" users");
+  return json({ok:true,sent,failed,total:users.length},200,cors);
+}
+
+async function logActivity(env,type,message) {
+  try {
+    const record={id:Date.now().toString(),created_at:new Date().toISOString(),type,message};
+    await env.BOT_KV.put("activity:"+record.id,JSON.stringify(record),{expirationTtl:60*60*24*90});
+  } catch {}
+}
+
+async function listAllKeys(kv,prefix) {
+  if(!kv) return [];
+  const keys=[]; let cursor=undefined;
   do {
-    const options = { prefix };
-    if (cursor) options.cursor = cursor;
-
-    const page = await kv.list(options);
-    keys.push(...page.keys);
-    cursor = page.list_complete ? undefined : page.cursor;
-  } while (cursor);
-
+    const options={prefix}; if(cursor) options.cursor=cursor;
+    const page=await kv.list(options); keys.push(...page.keys);
+    cursor=page.list_complete?undefined:page.cursor;
+  } while(cursor);
   return keys;
 }
-
-async function getKV(kv, key, fallback) {
-  if (!kv) return fallback;
-  try {
-    return (await kv.get(key)) || fallback;
-  } catch {
-    return fallback;
-  }
+async function getKV(kv,key,fallback) {
+  if(!kv) return fallback;
+  try { return (await kv.get(key)) || fallback; } catch { return fallback; }
 }
-
-function json(data, status, headers) {
-  return new Response(JSON.stringify(data), { status, headers });
-}
-
-async function telegramMethod(token, method, payload) {
-  const response = await fetch(
-    `https://api.telegram.org/bot${token}/${method}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    }
-  );
-
+function json(data,status,headers){return new Response(JSON.stringify(data),{status,headers});}
+async function telegramMethod(token,method,payload){
+  const response=await fetch("https://api.telegram.org/bot"+token+"/"+method,{
+    method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)
+  });
   return response.json();
 }
