@@ -1058,9 +1058,12 @@ button:active{transform:translateY(0)}
         Admin Dashboard
       </div>
 
-      <div class="status">
-        <span class="dot"></span>
-        Bot Online
+      <div style="display:flex;align-items:center;gap:10px;margin-left:auto">
+        <button class="secondary" onclick="refreshCurrentSection()" title="Refresh current section">🔄 Refresh</button>
+        <div class="status">
+          <span class="dot"></span>
+          Bot Online
+        </div>
       </div>
 
     </div>
@@ -1897,7 +1900,16 @@ function showSection(id) {
   const sections=["dashboard","links","broadcast","templates","users","history","settings","bot","menu","vs","livecenter","analytics","moderation","activity"];
   sections.forEach(section=>{const el=document.getElementById(section);if(el)el.style.display=section===id?"block":"none";});
   document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
-  if(id==="users")loadUsers();if(id==="history")loadHistory();if(id==="menu")loadMenu();if(id==="vs")loadVS();if(id==="livecenter")loadLiveMatch();if(id==="analytics")loadAnalytics();if(id==="templates")loadTemplates();if(id==="activity")loadActivity();
+  const activeBtn=[...document.querySelectorAll(".nav button")].find(b=>String(b.getAttribute("onclick")||"").includes("showSection('"+id+"')"));
+  if(activeBtn)activeBtn.classList.add("active");
+  if(id==="dashboard")loadDashboard();if(id==="users")loadUsers();if(id==="history")loadHistory();if(id==="menu")loadMenu();if(id==="vs")loadVS();if(id==="livecenter")loadLiveMatch();if(id==="analytics")loadAnalytics();if(id==="templates")loadTemplates();if(id==="activity")loadActivity();if(id==="moderation")loadModerationStats();
+}
+async function refreshCurrentSection(){
+  const current=document.querySelector("section[style*='display: block']");
+  const id=current?.id||"dashboard";
+  const btn=document.querySelector(".topbar button");
+  if(btn){btn.disabled=true;btn.textContent="⏳ Refreshing";}
+  try{showSection(id);}finally{setTimeout(()=>{if(btn){btn.disabled=false;btn.textContent="🔄 Refresh";}},500);}
 }
 
 
