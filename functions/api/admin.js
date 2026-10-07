@@ -313,7 +313,7 @@ const LINK_KEYS = [
   "ADMIN_LINK","BACKUP_CHANNEL_LINK","GROUP_LINK","LIVE_LINK","MAIN_CHANNEL_LINK",
   "SCORE_LINK","SCHEDULE_LINK","STREAM_LINK","VS_MATCH_LINK"
 ];
-const SETTING_KEYS = ["WELCOME_MESSAGE","RULES_MESSAGE","ABOUT_MESSAGE","MENU_CONFIG","VS_MATCH","MEDIA_CHAT_ID"];
+const SETTING_KEYS = ["WELCOME_MESSAGE","RULES_MESSAGE","ABOUT_MESSAGE","MENU_CONFIG","VS_MATCH","MEDIA_CHAT_ID","CHANNEL_FANOUT_ENABLED","WELCOME_NEW_MEMBERS"];
 
 async function getDashboardData(env) {
   const config = {};
@@ -338,6 +338,8 @@ function defaultSetting(key) {
   if (key === "MENU_CONFIG") return JSON.stringify([]);
   if (key === "VS_MATCH") return JSON.stringify({team_a:"",team_b:"",date:"",time:"",venue:"",status:"Upcoming",link:""});
   if (key === "MEDIA_CHAT_ID") return "";
+  if (key === "CHANNEL_FANOUT_ENABLED") return "true";
+  if (key === "WELCOME_NEW_MEMBERS") return "true";
   return "";
 }
 
