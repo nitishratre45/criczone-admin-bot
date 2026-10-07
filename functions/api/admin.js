@@ -114,10 +114,10 @@ export async function onRequest(context) {
         if (uploadAction === "upload_media") {
           const file = form.get("file");
           const type = String(form.get("type") || "");
-          const chatId = String(form.get("chat_id") || "").trim();
+          const chatId = String(env.MEDIA_CHAT_ID || "").trim();
           if (!(file instanceof File)) return json({ok:false,error:"Media file is required"},400,cors);
           if (!["photo","video"].includes(type)) return json({ok:false,error:"Upload type must be photo or video"},400,cors);
-          if (!chatId) return json({ok:false,error:"Telegram Media Chat ID is required"},400,cors);
+          if (!chatId) return json({ok:false,error:"MEDIA_CHAT_ID is not configured in Cloudflare Pages"},500,cors);
           const maxBytes = type === "photo" ? 10 * 1024 * 1024 : 50 * 1024 * 1024;
           if (file.size > maxBytes) return json({ok:false,error:(type === "photo" ? "Photo" : "Video") + " is too large. Max " + (type === "photo" ? "10 MB" : "50 MB")},400,cors);
           const tgForm = new FormData();
