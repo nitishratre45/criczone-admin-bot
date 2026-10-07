@@ -23,6 +23,34 @@ export async function onRequest(context) {
       const userStatus = (url.searchParams.get("status") || "").trim().toLowerCase();
       const userNotify = (url.searchParams.get("notify") || "").trim().toLowerCase();
 
+      if (view === "health") {
+        const now = new Date().toISOString();
+        let telegram = { ok:false, status:"error" };
+        let webhook = { ok:false, status:"error" };
+        try {
+          const me = await telegramMethod(env.BOT_TOKEN, "getMe", {});
+          telegram = me?.ok ? { ok:true, status:"online", bot_username: me.result?.username || "" } : { ok:false, status:"error" };
+        } catch {}
+        try {
+          const wh = await telegramMethod(env.BOT_TOKEN, "getWebhookInfo", {});
+          webhook = wh?.ok ? {
+            ok:true,
+            status: wh.result?.url ? "configured" : "not_configured",
+            pending: Number(wh.result?.pending_update_count || 0),
+            last_error: wh.result?.last_error_message || ""
+          } : { ok:false, status:"error" };
+        } catch {}
+        let kvOk=false;
+        try { await env.BOT_KV.get("health:ping"); kvOk=true; } catch {}
+        return json({
+          ok:true,
+          checked_at:now,
+          telegram,
+          webhook,
+          kv:{ok:kvOk,status:kvOk?"online":"error"}
+        },200,cors);
+      }
+
       if (view === "history") {
         const keys = await listAllKeys(env.BOT_KV, "broadcast:");
         const history = [];
