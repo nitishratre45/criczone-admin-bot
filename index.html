@@ -704,8 +704,7 @@ textarea {
     text-align: center;
   }
 
-  /* Schedule/moderation controls */
-  #schedule .grid,
+  /* Moderation controls */
   #moderation .grid {
     grid-template-columns: 1fr;
   }
@@ -780,9 +779,6 @@ textarea {
 .health-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#21d17c;margin-right:7px;box-shadow:0 0 12px #21d17c}
 .health-items{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .health-items span{padding:8px 10px;border-radius:9px;background:#0b111a;border:1px solid #202b3a;font-size:12px;color:#aeb9c8}
-.schedule-item-head{display:flex;justify-content:space-between;gap:10px;align-items:center}
-.schedule-item-head span{font-size:12px;color:#21d17c}
-.schedule-date{margin:7px 0;font-weight:700}
 @media(max-width:768px){
   .dashboard-health{display:block}
   .health-items{justify-content:flex-start;margin-top:12px}
@@ -2003,8 +1999,8 @@ function updateVSPreview(){
 async function loadVS(){const d=await adminGet();let m={};try{m=JSON.parse(d.settings.VS_MATCH||"{}")}catch{}vsTeamA.value=m.team_a||"";vsTeamB.value=m.team_b||"";vsDate.value=m.date||"";vsTime.value=m.time||"";vsVenue.value=m.venue||"";vsStatus.value=m.status||"Upcoming";vsLink.value=m.link||d.config.VS_MATCH_LINK||"";updateVSPreview();}
 async function saveVS(){const match={team_a:vsTeamA.value,team_b:vsTeamB.value,date:vsDate.value,time:vsTime.value,venue:vsVenue.value,status:vsStatus.value,link:vsLink.value};const d=await adminPost({action:"save_vs_match",match});vsResult.textContent=d.ok?"✅ VS Match saved!":"❌ Error: "+d.error;updateVSPreview();}
 async function loadAnalytics(){const d=await adminGet("analytics"),g=d.growth||{},p=d.growthPct||{};analyticsCards.innerHTML='<div class="v5-card"><h3>👥 Users</h3><b>'+d.users+'</b><div class="mini">Registered</div></div><div class="v5-card"><h3>🟢 Active</h3><b>'+ (d.active24h||0) +'</b><div class="mini">Active in 24h</div></div><div class="v5-card"><h3>📢 Broadcasts</h3><b>'+d.broadcasts+'</b><div class="mini">Delivery records</div></div><div class="v5-card"><h3>📬 Delivered</h3><b>'+ (d.delivered||0) +'</b><div class="mini">Messages delivered</div></div><div class="v5-card"><h3>🔴 Failed</h3><b>'+ (d.failed||0) +'</b><div class="mini">Delivery failures</div></div>';growthStats.innerHTML="<b>New users</b><br>Today: "+(g.today||0)+" ("+(p.today||0)+"%) • 7 days: "+(g.last7||0)+" ("+(p.last7||0)+"%) • 30 days: "+(g.last30||0)+" ("+(p.last30||0)+"%)<br><b>Delivery</b><br>"+(d.delivered||0)+" delivered • "+(d.failed||0)+" failed";}
-function syncUploadType(target){const typeEl=document.getElementById(target==="broadcast"?"broadcastType":"schType");const file=document.getElementById(target==="broadcast"?"broadcastMediaFile":"schMediaFile")?.files?.[0];if(typeEl&&file)typeEl.value=file.type.startsWith("video/")?"video":"photo";}
-async function uploadAdminMedia(target){const file=document.getElementById(target==="broadcast"?"broadcastMediaFile":"schMediaFile")?.files?.[0];const typeEl=document.getElementById(target==="broadcast"?"broadcastType":"schType");const type=(typeEl?.value==="video"||file?.type?.startsWith("video/"))?"video":"photo";const status=document.getElementById("mediaUploadStatus");if(!file){alert("Choose a photo or video first.");return;}const max=type==="photo"?10*1024*1024:50*1024*1024;if(file.size>max){alert((type==="photo"?"Photo":"Video")+" is too large.");return;}if(status)status.textContent="⏳ Uploading "+file.name+"...";const form=new FormData();form.append("action","upload_media");form.append("type",type);form.append("file",file,file.name);try{const r=await fetch("/api/admin",{method:"POST",headers:{"X-Admin-Key":ADMIN_KEY},body:form});const d=await r.json();if(!d.ok){if(status)status.textContent="❌ "+(d.error||"Upload failed");alert(d.error||"Upload failed");return;}const mediaInput=document.getElementById(target==="broadcast"?"broadcastMedia":"schMedia");if(mediaInput)mediaInput.value=d.file_id||"";if(status)status.textContent="✅ Uploaded • file_id ready";alert("✅ Media uploaded. file_id added automatically.");}catch(e){console.error(e);if(status)status.textContent="❌ Upload failed";alert("Upload failed. Please try again.");}}
+function syncUploadType(){const typeEl=document.getElementById("broadcastType");const file=document.getElementById("broadcastMediaFile")?.files?.[0];if(typeEl&&file)typeEl.value=file.type.startsWith("video/")?"video":"photo";}
+async function uploadAdminMedia(){const file=document.getElementById("broadcastMediaFile")?.files?.[0];const typeEl=document.getElementById("broadcastType");const type=(typeEl?.value==="video"||file?.type?.startsWith("video/"))?"video":"photo";const status=document.getElementById("mediaUploadStatus");if(!file){alert("Choose a photo or video first.");return;}const max=type==="photo"?10*1024*1024:50*1024*1024;if(file.size>max){alert((type==="photo"?"Photo":"Video")+" is too large.");return;}if(status)status.textContent="⏳ Uploading "+file.name+"...";const form=new FormData();form.append("action","upload_media");form.append("type",type);form.append("file",file,file.name);try{const r=await fetch("/api/admin",{method:"POST",headers:{"X-Admin-Key":ADMIN_KEY},body:form});const d=await r.json();if(!d.ok){if(status)status.textContent="❌ "+(d.error||"Upload failed");alert(d.error||"Upload failed");return;}const mediaInput=document.getElementById("broadcastMedia");if(mediaInput)mediaInput.value=d.file_id||"";if(status)status.textContent="✅ Uploaded • file_id ready";alert("✅ Media uploaded. file_id added automatically.");}catch(e){console.error(e);if(status)status.textContent="❌ Upload failed";alert("Upload failed. Please try again.");}}
 document.addEventListener("DOMContentLoaded",()=>{
   ["vsTeamA","vsTeamB","vsDate","vsTime","vsVenue","vsStatus"].forEach(id=>{
     const e=document.getElementById(id);
@@ -2018,24 +2014,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   });
   updateBroadcastPreview();
 
-  const date=document.getElementById("schDate"),time=document.getElementById("schTime");
-  if(date&&time){date.addEventListener("change",updateSchedulePreview);time.addEventListener("change",updateSchedulePreview);}
 });
-async function loadSchedules(){
-  const d=await adminGet("schedules");
-  const list=d.schedules||[];
-  const now=Date.now();
-  const pending=list.filter(x=>x.enabled!==false&&Date.parse(x.run_at)>now);
-  const summary=document.getElementById("scheduleSummary");
-  if(summary) summary.textContent=pending.length+" pending schedule"+(pending.length===1?"":"s")+" • "+list.length+" total record"+(list.length===1?"":"s");
-  scheduleList.innerHTML=list.length?list.map(x=>{
-    const t=Date.parse(x.run_at);
-    const pendingNow=x.enabled!==false&&Number.isFinite(t)&&t>now;
-    const status=pendingNow?"🟢 Pending":"⚪ Past";
-    return '<div class="v5-card schedule-item" style="margin-top:10px"><div class="schedule-item-head"><b>'+escapeHTML(x.type||"text").toUpperCase()+'</b><span>'+status+'</span></div><div class="schedule-date">📅 '+escapeHTML(x.run_at||"")+'</div><div class="mini">'+escapeHTML(x.message||"")+'</div><button class="danger" style="margin-top:8px" onclick="deleteSchedule(\''+escapeHTML(x.id||"")+'\')">🗑️ Delete</button></div>';
-  }).join(""):'<div class="mini" style="margin-top:15px">No saved schedules.</div>';
-}
-async function deleteSchedule(id){if(!id||!confirm("Delete this scheduled broadcast?"))return;const d=await adminPost({action:"delete_schedule",id});scheduleResult.textContent=d.ok?"Schedule deleted!":"Error: "+d.error;loadSchedules();}
 async function saveTemplate(){
   const template={name:tplName.value.trim(),type:tplType.value,message:tplMessage.value.trim(),media:tplMedia.value.trim(),button_text:tplButtonText.value.trim(),button_url:tplButtonUrl.value.trim()};
   if(!template.name)return alert("Template name is required.");
