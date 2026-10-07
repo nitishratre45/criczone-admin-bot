@@ -152,6 +152,23 @@ export async function onRequest(context) {
         return json({ok:true,match},200,cors);
       }
 
+      if (view === "moderation_stats") {
+        const warningKeys=await listAllKeys(env.BOT_KV,"warnings:");
+        const users=[];
+        for(const key of warningKeys){
+          const count=Number(await env.BOT_KV.get(key.name))||0;
+          if(count>0) users.push({key:key.name.replace("warnings:",""),count});
+        }
+        users.sort((x,y)=>y.count-x.count);
+        const logs=await listAllKeys(env.BOT_KV,"activity:");
+        const recent=[];
+        for(const key of logs.slice(-50).reverse()){
+          const raw=await env.BOT_KV.get(key.name);
+          try{const x=raw?JSON.parse(raw):{};if(x.type==="moderation")recent.push(x)}catch{}
+        }
+        return json({ok:true,warnings:users,totalWarnings:users.reduce((n,x)=>n+x.count,0),recent:recent.slice(0,20)},200,cors);
+      }
+
       if (view === "config") {
         return json(await getDashboardData(env), 200, cors);
       }
@@ -296,7 +313,9 @@ export async function onRequest(context) {
           message: String(body.template?.message || "").slice(0, 4000),
           media: String(body.template?.media || "").trim().slice(0, 1000),
           button_text: String(body.template?.button_text || "🏏 Open").slice(0, 80),
-          button_url: String(body.template?.button_url || "").trim().slice(0, 2000)
+          button_url: String(body.template?.button_url || "").trim().slice(0, 2000),
+          category: String(body.template?.category || "General").trim().slice(0, 40),
+          favorite: body.template?.favorite === true
         };
         if (!t.name) return json({ok:false,error:"Template name is required"},400,cors);
         if (!t.message && t.type === "text") return json({ok:false,error:"Template message is required"},400,cors);
@@ -304,6 +323,28 @@ export async function onRequest(context) {
         if (t.button_url && !(t.button_url.startsWith("http://") || t.button_url.startsWith("https://"))) return json({ok:false,error:"Button URL must start with http:// or https://"},400,cors);
         await env.BOT_KV.put("template:" + t.id, JSON.stringify(t));
         await logActivity(env, "template", "Broadcast template saved: " + t.name);
+        return json({ok:true,template:t},200,cors);
+      }
+
+      if (action === "duplicate_template") {
+        const id = String(body.id || "").trim();
+        const raw = id ? await env.BOT_KV.get("template:" + id) : null;
+        if (!raw) return json({ok:false,error:"Template not found"},404,cors);
+        let t={}; try{t=JSON.parse(raw)}catch{}
+        t.id=String(Date.now())+Math.floor(Math.random()*1000);
+        t.name=String(t.name||"Template")+" Copy";
+        await env.BOT_KV.put("template:"+t.id,JSON.stringify(t));
+        await logActivity(env,"template","Template duplicated: "+t.name);
+        return json({ok:true,template:t},200,cors);
+      }
+
+      if (action === "toggle_template_favorite") {
+        const id=String(body.id||"").trim();
+        const raw=id?await env.BOT_KV.get("template:"+id):null;
+        if(!raw) return json({ok:false,error:"Template not found"},404,cors);
+        let t={}; try{t=JSON.parse(raw)}catch{}
+        t.favorite=t.favorite!==true;
+        await env.BOT_KV.put("template:"+id,JSON.stringify(t));
         return json({ok:true,template:t},200,cors);
       }
 
@@ -353,7 +394,7 @@ export async function onRequest(context) {
             permissions: { can_send_messages:true, can_send_audios:true, can_send_documents:true, can_send_photos:true, can_send_videos:true, can_send_video_notes:true, can_send_voice_notes:true, can_send_polls:true, can_send_other_messages:true, can_add_web_page_previews:true }
           });
         }
-        await logActivity(env, "moderation", operation + " user " + userId);
+        await logActivity(env, "moderation", operation + " user " + userId + (operation === "warn" ? " • warnings handled" : ""));
         return json({ ok: true, operation }, 200, cors);
       }
 
