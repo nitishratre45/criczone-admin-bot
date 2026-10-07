@@ -31,7 +31,7 @@ export async function onRequest(context) {
           const userId = key.name.replace("users:", "");
 
           try {
-            await telegramMethod(
+            const result = await telegramMethod(
               env.BOT_TOKEN,
               "copyMessage",
               {
@@ -40,12 +40,16 @@ export async function onRequest(context) {
                 message_id: post.message_id
               }
             );
+            if (!result?.ok && result?.error_code === 400 && /chat not found|user is deactivated|bot was blocked|kicked/i.test(String(result?.description || ""))) {
+              await env.BOT_KV.delete(key.name);
+            }
           } catch (error) {
             console.error(
               `Failed to send channel post to ${userId}`,
               error
             );
           }
+          await sleep(40);
         }
       }
 
@@ -280,6 +284,19 @@ export async function onRequest(context) {
 
     const msg = update.message;
     const chatId = msg.chat.id;
+
+    if (chatTypeIsPrivate(msg) && env.BOT_KV && msg.from?.id) {
+      const userKey = `users:${msg.from.id}`;
+      try {
+        const raw = await env.BOT_KV.get(userKey);
+        if (raw) {
+          const user = JSON.parse(raw);
+          user.last_active_at = new Date().toISOString();
+          user.status = "active";
+          await env.BOT_KV.put(userKey, JSON.stringify(user));
+        }
+      } catch {}
+    }
     const chatType = msg.chat.type;
     const text = (msg.text || "").trim();
 
@@ -364,7 +381,10 @@ export async function onRequest(context) {
             username:
               msg.from?.username || "",
             joined_at:
-              new Date().toISOString()
+              (await env.BOT_KV.get(`users:${chatId}`).then(raw => { try { return JSON.parse(raw)?.joined_at || new Date().toISOString(); } catch { return new Date().toISOString(); } }).catch(() => new Date().toISOString())),
+            last_active_at:
+              new Date().toISOString(),
+            status: "active"
           })
         );
       }
@@ -1357,7 +1377,15 @@ async function buildMainMenu(env) {
   return {inline_keyboard:rows};
 }
 
-async function getLink(env, key, fallback) {
+async function chatTypeIsPrivate(msg) {
+  return msg?.chat?.type === "private";
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function getLink(env, key, fallback) {
   if (!env.BOT_KV) return fallback || "";
 
   try {
