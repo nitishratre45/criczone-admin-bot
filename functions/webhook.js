@@ -86,6 +86,23 @@ export async function onRequest(context) {
         return new Response("OK");
       }
 
+      if (data === "open:VS_MATCH_LINK") {
+        let match = {};
+        try {
+          const raw = await env.BOT_KV?.get("settings:VS_MATCH");
+          match = raw ? JSON.parse(raw) : {};
+        } catch {}
+        const text = match.team_a && match.team_b
+          ? `⚔️ VS MATCH\n\n🏏 ${match.team_a} vs ${match.team_b}\n📅 ${match.date || "TBA"}\n⏰ ${match.time || "TBA"}\n📍 ${match.venue || "TBA"}\n📌 Status: ${match.status || "Upcoming"}`
+          : "⚔️ VS MATCH\n\nMatch details are not configured yet.";
+        const buttons = [];
+        const link = match.link || await getLink(env,"VS_MATCH_LINK",env.VS_MATCH_LINK);
+        if (link) buttons.push([{text:"🏏 Open Match Link",url:link}]);
+        buttons.push([{text:"⬅️ Back",callback_data:"menu"}]);
+        await editMessageText(env.BOT_TOKEN,callbackChatId,callbackMessageId,text,{inline_keyboard:buttons});
+        return new Response("OK");
+      }
+
       if (data.startsWith("open:")) {
         const key = data.slice(5);
 
