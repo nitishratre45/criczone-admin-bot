@@ -20,6 +20,8 @@ export async function onRequest(context) {
       const url = new URL(request.url);
       const view = url.searchParams.get("view") || "dashboard";
       const search = (url.searchParams.get("q") || "").trim().toLowerCase();
+      const userStatus = (url.searchParams.get("status") || "").trim().toLowerCase();
+      const userNotify = (url.searchParams.get("notify") || "").trim().toLowerCase();
 
       if (view === "history") {
         const keys = await listAllKeys(env.BOT_KV, "broadcast:");
@@ -68,7 +70,14 @@ export async function onRequest(context) {
           last7: users.length ? Number(((growth.last7 / users.length) * 100).toFixed(1)) : 0,
           last30: users.length ? Number(((growth.last30 / users.length) * 100).toFixed(1)) : 0
         };
-        return json({ ok: true, users: users.length, broadcasts: broadcasts.length, activity: activity.length, growth, growthPct, active24h, delivered, failed }, 200, cors);
+        const eventKeys = await listAllKeys(env.BOT_KV, "metrics:event:");
+        const eventUsage = [];
+        for (const key of eventKeys) {
+          const count = Number(await env.BOT_KV.get(key.name)) || 0;
+          eventUsage.push({name:key.name.replace("metrics:event:",""),count});
+        }
+        eventUsage.sort((x,y)=>y.count-x.count);
+        return json({ ok: true, users: users.length, broadcasts: broadcasts.length, activity: activity.length, growth, growthPct, active24h, delivered, failed, eventUsage:eventUsage.slice(0,20) }, 200, cors);
       }
 
       if (view === "activity") {
@@ -102,7 +111,9 @@ export async function onRequest(context) {
           try { user = raw ? JSON.parse(raw) : {}; } catch {}
           const userId = user.user_id || key.name.replace("users:", "");
           const haystack = [user.first_name || "", user.username || "", userId].join(" ").toLowerCase();
-          if (!search || haystack.includes(search)) {
+          const notifyState = user.channel_notifications === "off" ? "off" : "on";
+          const statusState = String(user.status || "registered").toLowerCase();
+          if ((!search || haystack.includes(search)) && (!userStatus || statusState === userStatus) && (!userNotify || notifyState === userNotify)) {
             result.push({
               user_id: userId,
               first_name: user.first_name || "Unknown",
@@ -132,6 +143,13 @@ export async function onRequest(context) {
           } catch {}
         }
         return json({ ok:true, total:keys.length, active24h, notifyOn }, 200, cors);
+      }
+
+      if (view === "live_match") {
+        const raw = await env.BOT_KV.get("settings:LIVE_MATCH");
+        let match = {};
+        try { match = raw ? JSON.parse(raw) : {}; } catch {}
+        return json({ok:true,match},200,cors);
       }
 
       if (view === "config") {
@@ -239,6 +257,31 @@ export async function onRequest(context) {
         if (match.link) await env.BOT_KV.put("config:VS_MATCH_LINK", match.link);
         await logActivity(env, "vs_match", match.team_a + " vs " + match.team_b);
         return json({ ok: true, match }, 200, cors);
+      }
+
+      if (action === "save_live_match") {
+        const match = {
+          team_a:String(body.match?.team_a||"").slice(0,80),
+          team_b:String(body.match?.team_b||"").slice(0,80),
+          score:String(body.match?.score||"").slice(0,120),
+          overs:String(body.match?.overs||"").slice(0,40),
+          batting:String(body.match?.batting||"").slice(0,120),
+          bowling:String(body.match?.bowling||"").slice(0,120),
+          status:String(body.match?.status||"Upcoming").slice(0,30),
+          note:String(body.match?.note||"").slice(0,300),
+          link:String(body.match?.link||"").trim().slice(0,2000),
+          updated_at:new Date().toISOString()
+        };
+        if (!match.team_a || !match.team_b) return json({ok:false,error:"Both teams are required"},400,cors);
+        await env.BOT_KV.put("settings:LIVE_MATCH",JSON.stringify(match));
+        await logActivity(env,"live_match","Live match updated: "+match.team_a+" vs "+match.team_b+" • "+match.status);
+        return json({ok:true,match},200,cors);
+      }
+
+      if (action === "clear_live_match") {
+        await env.BOT_KV.delete("settings:LIVE_MATCH");
+        await logActivity(env,"live_match","Live match cleared");
+        return json({ok:true},200,cors);
       }
 
       if (action === "broadcast") {
@@ -366,46 +409,69 @@ function defaultSetting(key) {
 }
 
 async function handleBroadcast(env, body, cors) {
-  const type = String(body.type || "text");
+  const type = ["text","photo","video"].includes(String(body.type)) ? String(body.type) : "text";
   const message = String(body.message || "").trim();
-  const audience = ["all","active24h","notify_on"].includes(String(body.audience)) ? String(body.audience) : "all";
+  const validAudiences = ["all","active24h","notify_on","selected"];
+  const audience = validAudiences.includes(String(body.audience)) ? String(body.audience) : "all";
   if (!message && type === "text") return json({ok:false,error:"Message is required"},400,cors);
+
+  const selectedIds = String(body.selected_ids || "").split(/[\s,]+/).map(x=>x.trim()).filter(x=>/^\d+$/.test(x)).slice(0,5000);
+  if (audience === "selected" && !selectedIds.length) return json({ok:false,error:"Add at least one user ID for Selected Users"},400,cors);
+
   const userKeys = await listAllKeys(env.BOT_KV, "users:");
   const now = Date.now();
+  const selectedSet = new Set(selectedIds);
   const users = [];
   for (const key of userKeys) {
     const raw = await env.BOT_KV.get(key.name);
     let u = {}; try { u = raw ? JSON.parse(raw) : {}; } catch {}
+    const chat_id = key.name.replace("users:","");
     const last = Date.parse(u.last_active_at || "");
     const active = !Number.isNaN(last) && now - last < 86400000;
     const notifyOn = u.channel_notifications !== "off";
     if (audience === "active24h" && !active) continue;
     if (audience === "notify_on" && !notifyOn) continue;
-    users.push({ key, chat_id:key.name.replace("users:","") });
+    if (audience === "selected" && !selectedSet.has(chat_id)) continue;
+    users.push({key,chat_id});
   }
-  let sent=0, failed=0;
-  const reply_markup = body.button_url ? {inline_keyboard:[[{
-    text:String(body.button_text||"Open").slice(0,80), url:String(body.button_url).trim()
-  }]]} : undefined;
+
+  const buttons = [];
+  const buttonTexts = Array.isArray(body.buttons) ? body.buttons : [];
+  for (const b of buttonTexts.slice(0,3)) {
+    const label=String(b?.text||"").trim().slice(0,80), url=String(b?.url||"").trim();
+    if(label && /^https?:\/\//i.test(url)) buttons.push([{text:label,url}]);
+  }
+  if (!buttons.length && body.button_url) {
+    const url=String(body.button_url).trim();
+    if(/^https?:\/\//i.test(url)) buttons.push([{text:String(body.button_text||"Open").slice(0,80),url}]);
+  }
+  const reply_markup = buttons.length ? {inline_keyboard:buttons} : undefined;
+
+  let sent=0,failed=0;
   for (const user of users) {
-    const chat_id = user.chat_id;
     try {
       let result;
-      if (type === "photo") result = await telegramMethod(env.BOT_TOKEN,"sendPhoto",{chat_id,photo:String(body.media||"").trim(),caption:message||undefined,reply_markup});
-      else if (type === "video") result = await telegramMethod(env.BOT_TOKEN,"sendVideo",{chat_id,video:String(body.media||"").trim(),caption:message||undefined,reply_markup});
-      else result = await telegramMethod(env.BOT_TOKEN,"sendMessage",{chat_id,text:message,reply_markup});
-      if (result?.ok) sent++;
-      else { failed++; if (result?.error_code === 400 && /chat not found|user is deactivated|bot was blocked|kicked/i.test(String(result?.description || ""))) { try { await env.BOT_KV.delete(user.key.name); } catch {} } }
-    } catch (error) {
-      failed++; if (/chat not found|user is deactivated|bot was blocked|kicked/i.test(String(error?.message || ""))) { try { await env.BOT_KV.delete(user.key.name); } catch {} }
+      const common = {chat_id:user.chat_id, reply_markup};
+      if(type==="photo") result=await telegramMethod(env.BOT_TOKEN,"sendPhoto",{...common,photo:String(body.media||"").trim(),caption:message||undefined});
+      else if(type==="video") result=await telegramMethod(env.BOT_TOKEN,"sendVideo",{...common,video:String(body.media||"").trim(),caption:message||undefined});
+      else result=await telegramMethod(env.BOT_TOKEN,"sendMessage",{...common,text:message});
+      if(result?.ok) sent++;
+      else {
+        failed++;
+        if(result?.error_code===400 && /chat not found|user is deactivated|bot was blocked|kicked/i.test(String(result?.description||""))) { try{await env.BOT_KV.delete(user.key.name)}catch{} }
+      }
+    } catch(error) {
+      failed++;
+      if(/chat not found|user is deactivated|bot was blocked|kicked/i.test(String(error?.message||""))) { try{await env.BOT_KV.delete(user.key.name)}catch{} }
     }
-    await new Promise(resolve => setTimeout(resolve, 40));
+    await new Promise(resolve=>setTimeout(resolve,40));
   }
-  const record = { id:Date.now().toString(), created_at:new Date().toISOString(), type, audience, sent,failed,total:users.length,preview:(message||"").slice(0,160), media:type==="text" ? "" : String(body.media||"").slice(0,250), button_url:String(body.button_url||"") };
-  try { await env.BOT_KV.put("broadcast:"+record.id,JSON.stringify(record),{expirationTtl:60*60*24*90}); } catch {}
+  const record={id:Date.now().toString(),created_at:new Date().toISOString(),type,audience,sent,failed,total:users.length,preview:(message||"").slice(0,160),media:type==="text"?"":String(body.media||"").slice(0,250),button_url:String(body.button_url||"")};
+  try{await env.BOT_KV.put("broadcast:"+record.id,JSON.stringify(record),{expirationTtl:60*60*24*90})}catch{}
   await logActivity(env,"broadcast","Sent "+type+" broadcast to "+audience+": "+sent+" delivered, "+failed+" failed");
   return json({ok:true,sent,failed,total:users.length,audience},200,cors);
 }
+
 async function logActivity(env,type,message) {
   try {
     const record={id:Date.now().toString(),created_at:new Date().toISOString(),type,message};
