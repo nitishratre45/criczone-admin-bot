@@ -445,6 +445,7 @@ export async function onRequest(context) {
     if (command === "/channel") {
 
       const link = await getLink(
+        env,
         "MAIN_CHANNEL_LINK",
         env.MAIN_CHANNEL_LINK
       );
@@ -469,6 +470,7 @@ export async function onRequest(context) {
     if (command === "/backup") {
 
       const link = await getLink(
+        env,
         "BACKUP_CHANNEL_LINK",
         env.BACKUP_CHANNEL_LINK
       );
@@ -493,6 +495,7 @@ export async function onRequest(context) {
     if (command === "/live") {
 
       const link = await getLink(
+        env,
         "LIVE_LINK",
         env.LIVE_LINK
       );
@@ -519,6 +522,7 @@ Watch the live match below 👇`,
     if (command === "/score") {
 
       const link = await getLink(
+        env,
         "SCORE_LINK",
         env.SCORE_LINK
       );
@@ -543,6 +547,7 @@ Watch the live match below 👇`,
     if (command === "/schedule") {
 
       const link = await getLink(
+        env,
         "SCHEDULE_LINK",
         env.SCHEDULE_LINK
       );
@@ -567,6 +572,7 @@ Watch the live match below 👇`,
     if (command === "/stream") {
 
       const link = await getLink(
+        env,
         "STREAM_LINK",
         env.STREAM_LINK
       );
@@ -592,42 +598,49 @@ Watch the live match below 👇`,
 
       const group =
         await getLink(
+          env,
           "GROUP_LINK",
           env.GROUP_LINK
         );
 
       const main =
         await getLink(
+          env,
           "MAIN_CHANNEL_LINK",
           env.MAIN_CHANNEL_LINK
         );
 
       const backup =
         await getLink(
+          env,
           "BACKUP_CHANNEL_LINK",
           env.BACKUP_CHANNEL_LINK
         );
 
       const live =
         await getLink(
+          env,
           "LIVE_LINK",
           env.LIVE_LINK
         );
 
       const score =
         await getLink(
+          env,
           "SCORE_LINK",
           env.SCORE_LINK
         );
 
       const schedule =
         await getLink(
+          env,
           "SCHEDULE_LINK",
           env.SCHEDULE_LINK
         );
 
       const stream =
         await getLink(
+          env,
           "STREAM_LINK",
           env.STREAM_LINK
         );
@@ -696,6 +709,7 @@ Watch the live match below 👇`,
 
       const link =
         await getLink(
+          env,
           "ADMIN_LINK",
           env.ADMIN_LINK
         );
@@ -721,6 +735,7 @@ Watch the live match below 👇`,
 
       const link =
         await getLink(
+          env,
           "GROUP_LINK",
           env.GROUP_LINK
         );
