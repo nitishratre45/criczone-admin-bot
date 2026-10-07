@@ -1331,6 +1331,11 @@ textarea {
           <textarea id="ABOUT_MESSAGE"></textarea>
         </div>
 
+        <div class="grid" style="margin-top:16px">
+          <div class="field"><label>📢 Channel Post Notifications</label><select id="CHANNEL_FANOUT_ENABLED" style="width:100%;background:#0a1019;color:#fff;border:1px solid #293545;border-radius:12px;padding:13px"><option value="true">🟢 Enabled</option><option value="false">🔴 Disabled</option></select><div class="mini">Global channel-post forwarding control. Users can pause their own notifications with /stop.</div></div>
+          <div class="field"><label>🎉 New Member Welcome</label><select id="WELCOME_NEW_MEMBERS" style="width:100%;background:#0a1019;color:#fff;border:1px solid #293545;border-radius:12px;padding:13px"><option value="true">🟢 Enabled</option><option value="false">🔴 Disabled</option></select><div class="mini">Enable or disable automatic group welcome messages.</div></div>
+        </div>
+
         <div class="actions">
           <button
             class="save"
@@ -1521,7 +1526,7 @@ async function loadDashboard() {
   const settings =
     data.settings || {};
 
-  ["WELCOME_MESSAGE", "RULES_MESSAGE", "ABOUT_MESSAGE"].forEach(
+  ["WELCOME_MESSAGE", "RULES_MESSAGE", "ABOUT_MESSAGE", "CHANNEL_FANOUT_ENABLED", "WELCOME_NEW_MEMBERS"].forEach(
     key => {
       const input = document.getElementById(key);
       if (input) {
@@ -1852,7 +1857,7 @@ async function saveSettings() {
 
   const settings = {};
 
-  ["WELCOME_MESSAGE", "RULES_MESSAGE", "ABOUT_MESSAGE"].forEach(
+  ["WELCOME_MESSAGE", "RULES_MESSAGE", "ABOUT_MESSAGE", "CHANNEL_FANOUT_ENABLED", "WELCOME_NEW_MEMBERS"].forEach(
     key => {
       settings[key] =
         document
