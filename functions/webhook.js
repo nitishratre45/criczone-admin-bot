@@ -96,7 +96,7 @@ export async function onRequest(context) {
 
         await editMessageText(
           env.BOT_TOKEN, callbackChatId, callbackMessageId,
-          "🔔 NOTIFICATION SETTINGS\n\nChannel updates: " + (enabled ? "🟢 ON" : "🔕 OFF") + "\n\nChoose your preference below.",
+          "<b>🔔 NOTIFICATION SETTINGS</b>\n\n━━━━━━━━━━━━━━\n<b>Channel Updates:</b> " + (enabled ? "🟢 ON" : "🔕 OFF") + "\n━━━━━━━━━━━━━━\n\nChoose your preference below.",
           { inline_keyboard: [
             [{ text: enabled ? "🔕 Turn OFF" : "🔔 Turn ON", callback_data: enabled ? "notify_off" : "notify_on" }],
             [{ text: "🏠 Home", callback_data: "menu" }]
@@ -154,15 +154,16 @@ export async function onRequest(context) {
 
         await editMessageText(
           env.BOT_TOKEN, callbackChatId, callbackMessageId,
-          "👤 MY PROFILE\n\nName: " + name
-            + "\nUsername: " + (username ? "@" + escapeText(username) : "—")
-            + "\nUser ID: " + callbackChatId
-            + "\nJoined: " + joined
-            + "\nNotifications: " + notifications,
+          "<b>👤 MY PROFILE</b>\n\n━━━━━━━━━━━━━━\n<b>Name:</b> " + name
+            + "\n<b>Username:</b> " + (username ? "@" + escapeText(username) : "—")
+            + "\n<b>User ID:</b> <code>" + callbackChatId + "</code>"
+            + "\n<b>Joined:</b> " + joined
+            + "\n<b>Notifications:</b> " + notifications
+            + "\n━━━━━━━━━━━━━━",
           { inline_keyboard: [
             [{ text: "🔔 Notifications", callback_data: "notifications" }],
             [{ text: "🏠 Home", callback_data: "menu" }]
-          ] }
+          ] }, "HTML"
         );
         return new Response("OK");
       }
@@ -186,7 +187,7 @@ export async function onRequest(context) {
         const welcome = await getBotSetting(
           env.BOT_KV,
           "WELCOME_MESSAGE",
-          "🏏 WELCOME TO CRICZONE\n\n🔥 Your all-in-one cricket hub\n📢 Channels • 🔴 Live • 📊 Score • 📅 Schedule\n\n👇 Choose what you need:"
+          "<b>🏏 WELCOME TO CRICZONE</b>\n\n🔥 Your all-in-one cricket hub\n\n📢 <b>Channels</b>  •  🔴 <b>Live</b>\n📊 <b>Score</b>  •  📅 <b>Schedule</b>\n\n━━━━━━━━━━━━━━\n👇 <b>Choose what you need</b>"
         );
 
         await editMessageText(
@@ -209,7 +210,7 @@ export async function onRequest(context) {
         const status = String(match.status || "Upcoming");
         const statusIcon = /live/i.test(status) ? "🔴" : /complete|finished/i.test(status) ? "✅" : "🟢";
         const text = match.team_a && match.team_b
-          ? `⚔️ VS MATCH\n\n🏏 ${match.team_a}  🆚  ${match.team_b}\n\n📅 ${match.date || "TBA"}\n⏰ ${match.time || "TBA"}\n📍 ${match.venue || "TBA"}\n${statusIcon} Status: ${status}`
+          ? `<b>⚔️ VS MATCH</b>\n\n🏏 <b>${escapeText(match.team_a)}</b>  🆚  <b>${escapeText(match.team_b)}</b>\n\n━━━━━━━━━━━━━━\n📅 ${escapeText(match.date || "TBA")}\n⏰ ${escapeText(match.time || "TBA")}\n📍 ${escapeText(match.venue || "TBA")}\n${statusIcon} <b>Status:</b> ${escapeText(status)}\n━━━━━━━━━━━━━━`
           : "⚔️ VS MATCH\n\nNo match has been configured yet.\n\nCheck back soon!";
         const buttons = [];
         const link = match.link || await getLink(env,"VS_MATCH_LINK",env.VS_MATCH_LINK);
@@ -607,7 +608,7 @@ export async function onRequest(context) {
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
-        "🏏 CRICZONE MENU\n\n🔥 Fast access to everything\n👇 Select an option below",
+        "<b>🏏 CRICZONE MENU</b>\n\n🔥 Fast access to everything\n\n━━━━━━━━━━━━━━\n👇 <b>Select an option below</b>",
         await buildMainMenu(env)
       );
 
@@ -1583,13 +1584,10 @@ async function getLink(env, key, fallback) {
   }
 }
 
-async function editMessageText(token, chatId, messageId, text, replyMarkup) {
-  return telegramMethod(token, "editMessageText", {
-    chat_id: chatId,
-    message_id: messageId,
-    text,
-    reply_markup: replyMarkup
-  });
+async function editMessageText(token, chatId, messageId, text, replyMarkup, parseMode = null) {
+  const payload = { chat_id: chatId, message_id: messageId, text, reply_markup: replyMarkup };
+  if (parseMode) payload.parse_mode = parseMode;
+  return telegramMethod(token, "editMessageText", payload);
 }
 
 async function answerCallbackQuery(token, callbackQueryId) {
