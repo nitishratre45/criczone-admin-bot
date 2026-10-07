@@ -1,9 +1,9 @@
 export async function onRequest(context) {
   const { request, env } = context;
 
-  // =========================
+  // ==================================================
   // BASIC CHECK
-  // =========================
+  // ==================================================
 
   if (request.method === "GET") {
     return new Response("CRICZONE ADMIN BOT is running ✅");
@@ -17,7 +17,8 @@ export async function onRequest(context) {
     const update = await request.json();
 
     // ==================================================
-    // CHANNEL POST → SEND TO ALL USERS WHO USED /START
+    // CHANNEL POST
+    // SEND CHANNEL POSTS TO ALL /START USERS
     // ==================================================
 
     if (update.channel_post) {
@@ -53,9 +54,9 @@ export async function onRequest(context) {
       return new Response("OK");
     }
 
-    // =========================
+    // ==================================================
     // MESSAGE CHECK
-    // =========================
+    // ==================================================
 
     if (!update.message) {
       return new Response("OK");
@@ -66,29 +67,34 @@ export async function onRequest(context) {
     const chatType = msg.chat.type;
     const text = (msg.text || "").trim();
 
-    // =========================
-    // NEW MEMBER WELCOME
-    // =========================
+    // ==================================================
+    // NEW MEMBER
+    // ==================================================
 
-    if (msg.new_chat_members && msg.new_chat_members.length > 0) {
+    if (
+      msg.new_chat_members &&
+      msg.new_chat_members.length > 0
+    ) {
       for (const user of msg.new_chat_members) {
         const name = escapeText(
-          user.first_name || user.username || "Friend"
+          user.first_name ||
+          user.username ||
+          "Friend"
         );
 
         await sendMessage(
           env.BOT_TOKEN,
           chatId,
-          `🎉 Welcome to CRICZONE HUB, ${name}! 🏏\n❤️ Glad to have you here! 🔥`
+          `🎉 Welcome to CRICZONE HUB, ${name}! 🏏\n\n❤️ Glad to have you here!\n🔥 Enjoy the cricket community!`
         );
       }
 
       return new Response("OK");
     }
 
-    // =========================
+    // ==================================================
     // MEMBER LEFT
-    // =========================
+    // ==================================================
 
     if (msg.left_chat_member) {
       const name = escapeText(
@@ -106,35 +112,43 @@ export async function onRequest(context) {
       return new Response("OK");
     }
 
-    // =========================
-    // COMMAND / TEXT CHECK
-    // =========================
+    // ==================================================
+    // NO TEXT
+    // ==================================================
 
     if (!text) {
       return new Response("OK");
     }
+
+    // ==================================================
+    // COMMAND
+    // ==================================================
 
     const command = text
       .split(/\s+/)[0]
       .toLowerCase()
       .split("@")[0];
 
-    // =========================
+    // ==================================================
     // START
-    // =========================
+    // ==================================================
 
     if (command === "/start") {
 
-      // Save private users
-      // who have started the bot
-      if (chatType === "private" && env.BOT_KV) {
-
+      if (
+        chatType === "private" &&
+        env.BOT_KV
+      ) {
         await env.BOT_KV.put(
           `users:${chatId}`,
           JSON.stringify({
             user_id: chatId,
-            first_name: msg.from?.first_name || "",
-            username: msg.from?.username || ""
+            first_name:
+              msg.from?.first_name || "",
+            username:
+              msg.from?.username || "",
+            joined_at:
+              new Date().toISOString()
           })
         );
       }
@@ -142,25 +156,32 @@ export async function onRequest(context) {
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
-        "🏏 Welcome to CRICZONE!\n\nUse /help to see all commands."
+        `🏏 CRICZONE
+
+Welcome to the official CRICZONE Bot! 🔥
+
+Use /help to see all available commands.
+
+📢 Stay connected with CRICZONE for cricket updates.`
       );
+
+      return new Response("OK");
     }
 
-    // =========================
+    // ==================================================
     // HELP
-    // =========================
+    // ==================================================
 
-    else if (command === "/help") {
+    if (command === "/help") {
 
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
-        `🤖 CRICZONE ADMIN BOT
+        `🤖 CRICZONE BOT
 
 🏏 GENERAL
 /start
 /help
-/mention
 /rules
 /about
 /id
@@ -186,32 +207,18 @@ export async function onRequest(context) {
 /kick
 /del
 
-⚠️ Moderation commands are for admins only.`
+━━━━━━━━━━━━━━━━━━
+⚠️ Moderation commands are for group admins only.`
       );
+
+      return new Response("OK");
     }
 
-    // =========================
-    // MENTION
-    // =========================
-
-    else if (command === "/mention") {
-
-      await sendMessage(
-        env.BOT_TOKEN,
-        chatId,
-        "📢 Join CRICZONE HUB 👇",
-        singleButton(
-          "🏏 CRICZONE HUB",
-          env.GROUP_LINK
-        )
-      );
-    }
-
-    // =========================
+    // ==================================================
     // RULES
-    // =========================
+    // ==================================================
 
-    else if (command === "/rules") {
+    if (command === "/rules") {
 
       await sendMessage(
         env.BOT_TOKEN,
@@ -231,13 +238,15 @@ export async function onRequest(context) {
 
 ❤️ Keep CRICZONE clean and friendly.`
       );
+
+      return new Response("OK");
     }
 
-    // =========================
+    // ==================================================
     // ABOUT
-    // =========================
+    // ==================================================
 
-    else if (command === "/about") {
+    if (command === "/about") {
 
       await sendMessage(
         env.BOT_TOKEN,
@@ -250,17 +259,46 @@ Your cricket community for:
 • Live Scores
 • Match Schedule
 • Cricket News
+• Live Streaming
 • Important Links
 
-❤️ Powered by CRICZONE`
+🔥 Powered by CRICZONE`
       );
+
+      return new Response("OK");
     }
 
-    // =========================
-    // CHANNEL
-    // =========================
+    // ==================================================
+    // GET LINK
+    // DASHBOARD VALUE > CLOUDFLARE VARIABLE
+    // ==================================================
 
-    else if (command === "/channel") {
+    const getLink = async (key, fallback) => {
+
+      if (!env.BOT_KV) {
+        return fallback || "";
+      }
+
+      try {
+        const value =
+          await env.BOT_KV.get(`config:${key}`);
+
+        return value || fallback || "";
+      } catch {
+        return fallback || "";
+      }
+    };
+
+    // ==================================================
+    // CHANNEL
+    // ==================================================
+
+    if (command === "/channel") {
+
+      const link = await getLink(
+        "MAIN_CHANNEL_LINK",
+        env.MAIN_CHANNEL_LINK
+      );
 
       await sendMessage(
         env.BOT_TOKEN,
@@ -268,16 +306,23 @@ Your cricket community for:
         "📢 CRICZONE MAIN CHANNEL 👇",
         singleButton(
           "📢 Main Channel",
-          env.MAIN_CHANNEL_LINK
+          link
         )
       );
+
+      return new Response("OK");
     }
 
-    // =========================
+    // ==================================================
     // BACKUP
-    // =========================
+    // ==================================================
 
-    else if (command === "/backup") {
+    if (command === "/backup") {
+
+      const link = await getLink(
+        "BACKUP_CHANNEL_LINK",
+        env.BACKUP_CHANNEL_LINK
+      );
 
       await sendMessage(
         env.BOT_TOKEN,
@@ -285,127 +330,201 @@ Your cricket community for:
         "🔄 CRICZONE BACKUP CHANNEL 👇",
         singleButton(
           "🔗 Backup Channel",
-          env.BACKUP_CHANNEL_LINK
+          link
         )
       );
+
+      return new Response("OK");
     }
 
-    // =========================
+    // ==================================================
     // LIVE
-    // =========================
+    // ==================================================
 
-    else if (command === "/live") {
+    if (command === "/live") {
+
+      const link = await getLink(
+        "LIVE_LINK",
+        env.LIVE_LINK
+      );
 
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
-        "🔴 LIVE MATCH\n\nCheck the available link below 👇",
+        `🔴 LIVE MATCH
+
+Watch the live match below 👇`,
         singleButton(
-          "▶️ Watch Live",
-          env.LIVE_LINK
+          "▶️ WATCH LIVE",
+          link
         )
       );
+
+      return new Response("OK");
     }
 
-    // =========================
+    // ==================================================
     // SCORE
-    // =========================
+    // ==================================================
 
-    else if (command === "/score") {
+    if (command === "/score") {
+
+      const link = await getLink(
+        "SCORE_LINK",
+        env.SCORE_LINK
+      );
 
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
-        "🏏 LIVE SCORE 👇",
+        "📊 LIVE SCORE 👇",
         singleButton(
-          "📊 Check Score",
-          env.SCORE_LINK
+          "🏏 CHECK SCORE",
+          link
         )
       );
+
+      return new Response("OK");
     }
 
-    // =========================
+    // ==================================================
     // SCHEDULE
-    // =========================
+    // ==================================================
 
-    else if (command === "/schedule") {
+    if (command === "/schedule") {
+
+      const link = await getLink(
+        "SCHEDULE_LINK",
+        env.SCHEDULE_LINK
+      );
 
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
         "📅 MATCH SCHEDULE 👇",
         singleButton(
-          "📅 View Schedule",
-          env.SCHEDULE_LINK
+          "📅 VIEW SCHEDULE",
+          link
         )
       );
+
+      return new Response("OK");
     }
 
-    // =========================
+    // ==================================================
     // STREAM
-    // =========================
+    // ==================================================
 
-    else if (command === "/stream") {
+    if (command === "/stream") {
+
+      const link = await getLink(
+        "STREAM_LINK",
+        env.STREAM_LINK
+      );
 
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
         "📺 STREAMING LINK 👇",
         singleButton(
-          "▶️ Open Stream",
-          env.STREAM_LINK
+          "▶️ OPEN STREAM",
+          link
         )
       );
+
+      return new Response("OK");
     }
 
-    // =========================
-    // LINKS
-    // =========================
+    // ==================================================
+    // ALL LINKS
+    // ==================================================
 
-    else if (command === "/links") {
+    if (command === "/links") {
+
+      const group =
+        await getLink(
+          "GROUP_LINK",
+          env.GROUP_LINK
+        );
+
+      const main =
+        await getLink(
+          "MAIN_CHANNEL_LINK",
+          env.MAIN_CHANNEL_LINK
+        );
+
+      const backup =
+        await getLink(
+          "BACKUP_CHANNEL_LINK",
+          env.BACKUP_CHANNEL_LINK
+        );
+
+      const live =
+        await getLink(
+          "LIVE_LINK",
+          env.LIVE_LINK
+        );
+
+      const score =
+        await getLink(
+          "SCORE_LINK",
+          env.SCORE_LINK
+        );
+
+      const schedule =
+        await getLink(
+          "SCHEDULE_LINK",
+          env.SCHEDULE_LINK
+        );
+
+      const stream =
+        await getLink(
+          "STREAM_LINK",
+          env.STREAM_LINK
+        );
 
       const buttons = [];
 
       addButton(
         buttons,
         "🏏 CRICZONE HUB",
-        env.GROUP_LINK
+        group
       );
 
       addButton(
         buttons,
         "📢 Main Channel",
-        env.MAIN_CHANNEL_LINK
+        main
       );
 
       addButton(
         buttons,
         "🔄 Backup Channel",
-        env.BACKUP_CHANNEL_LINK
+        backup
       );
 
       addButton(
         buttons,
         "🔴 Live",
-        env.LIVE_LINK
+        live
       );
 
       addButton(
         buttons,
         "📊 Score",
-        env.SCORE_LINK
+        score
       );
 
       addButton(
         buttons,
         "📅 Schedule",
-        env.SCHEDULE_LINK
+        schedule
       );
 
       addButton(
         buttons,
         "📺 Stream",
-        env.STREAM_LINK
+        stream
       );
 
       await sendMessage(
@@ -416,13 +535,21 @@ Your cricket community for:
           inline_keyboard: buttons
         }
       );
+
+      return new Response("OK");
     }
 
-    // =========================
+    // ==================================================
     // ADMIN
-    // =========================
+    // ==================================================
 
-    else if (command === "/admin") {
+    if (command === "/admin") {
+
+      const link =
+        await getLink(
+          "ADMIN_LINK",
+          env.ADMIN_LINK
+        );
 
       await sendMessage(
         env.BOT_TOKEN,
@@ -430,64 +557,107 @@ Your cricket community for:
         "👨‍💻 CONTACT CRICZONE ADMIN 👇",
         singleButton(
           "💬 Contact Admin",
-          env.ADMIN_LINK
+          link
         )
       );
+
+      return new Response("OK");
     }
 
-    // =========================
+    // ==================================================
+    // MENTION
+    // ==================================================
+
+    if (command === "/mention") {
+
+      const link =
+        await getLink(
+          "GROUP_LINK",
+          env.GROUP_LINK
+        );
+
+      await sendMessage(
+        env.BOT_TOKEN,
+        chatId,
+        "📢 JOIN CRICZONE HUB 👇",
+        singleButton(
+          "🏏 CRICZONE HUB",
+          link
+        )
+      );
+
+      return new Response("OK");
+    }
+
+    // ==================================================
     // ID
-    // =========================
+    // ==================================================
 
-    else if (command === "/id") {
+    if (command === "/id") {
 
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
-        `🆔 Chat ID:
+        `🆔 CHAT INFORMATION
 
-${chatId}`
+Chat ID:
+${chatId}
+
+Chat Type:
+${chatType}`
       );
+
+      return new Response("OK");
     }
 
-    // =========================
+    // ==================================================
     // INFO
-    // =========================
+    // ==================================================
 
-    else if (command === "/info") {
+    if (command === "/info") {
 
-      const user = msg.from;
+      const user =
+        msg.from || {};
 
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
-        `👤 USER INFO
+        `👤 USER INFORMATION
 
-Name: ${user.first_name || "N/A"}
-Username: ${
-          user.username
-            ? "@" + user.username
-            : "N/A"
-        }
-User ID: ${user.id}`
+Name:
+${user.first_name || "N/A"}
+
+Username:
+${
+  user.username
+    ? "@" + user.username
+    : "N/A"
+}
+
+User ID:
+${user.id || "N/A"}`
       );
+
+      return new Response("OK");
     }
 
     // ==================================================
-    // MODERATION
+    // MODERATION COMMANDS
     // ==================================================
 
-    else if (
-      [
-        "/warn",
-        "/warnings",
-        "/ban",
-        "/unban",
-        "/mute",
-        "/unmute",
-        "/kick",
-        "/del"
-      ].includes(command)
+    const moderationCommands = [
+      "/warn",
+      "/warnings",
+      "/ban",
+      "/unban",
+      "/mute",
+      "/unmute",
+      "/kick",
+      "/del"
+    ];
+
+    if (
+      moderationCommands.includes(command)
     ) {
 
       if (chatType === "private") {
@@ -501,11 +671,12 @@ User ID: ${user.id}`
         return new Response("OK");
       }
 
-      const admin = await isAdmin(
-        env.BOT_TOKEN,
-        chatId,
-        msg.from.id
-      );
+      const admin =
+        await isAdmin(
+          env.BOT_TOKEN,
+          chatId,
+          msg.from.id
+        );
 
       if (!admin) {
 
@@ -517,10 +688,6 @@ User ID: ${user.id}`
 
         return new Response("OK");
       }
-
-      // =====================
-      // TARGET USER
-      // =====================
 
       const targetMessage =
         msg.reply_to_message;
@@ -550,9 +717,9 @@ User ID: ${user.id}`
         target.username ||
         "User";
 
-      // =====================
+      // ==============================================
       // DON'T MODERATE ADMINS
-      // =====================
+      // ==============================================
 
       const targetIsAdmin =
         await isAdmin(
@@ -572,9 +739,9 @@ User ID: ${user.id}`
         return new Response("OK");
       }
 
-      // =====================
+      // ==============================================
       // DELETE
-      // =====================
+      // ==============================================
 
       if (command === "/del") {
 
@@ -593,20 +760,13 @@ User ID: ${user.id}`
         return new Response("OK");
       }
 
-      // =====================
+      // ==============================================
       // WARN
-      // =====================
+      // ==============================================
 
       if (command === "/warn") {
 
         if (!env.BOT_KV) {
-
-          await sendMessage(
-            env.BOT_TOKEN,
-            chatId,
-            "⚠️ BOT_KV is not configured. Warning system needs Cloudflare KV."
-          );
-
           return new Response("OK");
         }
 
@@ -650,7 +810,7 @@ Reason: 3 warnings reached.`
           await sendMessage(
             env.BOT_TOKEN,
             chatId,
-            `⚠️ Warning ${warnings}/3
+            `⚠️ WARNING ${warnings}/3
 
 👤 ${targetName}
 
@@ -661,22 +821,11 @@ Please follow the group rules.`
         return new Response("OK");
       }
 
-      // =====================
-      // WARNINGS COUNT
-      // =====================
+      // ==============================================
+      // WARNINGS
+      // ==============================================
 
       if (command === "/warnings") {
-
-        if (!env.BOT_KV) {
-
-          await sendMessage(
-            env.BOT_TOKEN,
-            chatId,
-            "⚠️ BOT_KV is not configured."
-          );
-
-          return new Response("OK");
-        }
 
         const key =
           `warnings:${chatId}:${targetId}`;
@@ -689,18 +838,19 @@ Please follow the group rules.`
         await sendMessage(
           env.BOT_TOKEN,
           chatId,
-          `⚠️ Warnings
+          `⚠️ WARNINGS
 
 👤 ${targetName}
+
 📊 ${warnings}/3`
         );
 
         return new Response("OK");
       }
 
-      // =====================
+      // ==============================================
       // BAN
-      // =====================
+      // ==============================================
 
       if (command === "/ban") {
 
@@ -719,9 +869,9 @@ Please follow the group rules.`
         return new Response("OK");
       }
 
-      // =====================
+      // ==============================================
       // UNBAN
-      // =====================
+      // ==============================================
 
       if (command === "/unban") {
 
@@ -740,9 +890,9 @@ Please follow the group rules.`
         return new Response("OK");
       }
 
-      // =====================
+      // ==============================================
       // MUTE
-      // =====================
+      // ==============================================
 
       if (command === "/mute") {
 
@@ -761,9 +911,9 @@ Please follow the group rules.`
         return new Response("OK");
       }
 
-      // =====================
+      // ==============================================
       // UNMUTE
-      // =====================
+      // ==============================================
 
       if (command === "/unmute") {
 
@@ -782,9 +932,9 @@ Please follow the group rules.`
         return new Response("OK");
       }
 
-      // =====================
+      // ==============================================
       // KICK
-      // =====================
+      // ==============================================
 
       if (command === "/kick") {
 
@@ -819,40 +969,60 @@ Please follow the group rules.`
       const lower =
         text.toLowerCase();
 
+      // LIVE
       if (
         lower.includes("match link") ||
         lower.includes("live link") ||
-        lower.includes("match kaha milega")
+        lower.includes("match kaha milega") ||
+        lower === "live"
       ) {
+
+        const link =
+          await getLink(
+            "LIVE_LINK",
+            env.LIVE_LINK
+          );
 
         await sendMessage(
           env.BOT_TOKEN,
           chatId,
-          "🔴 LIVE LINKS HERE 👇",
+          "🔴 LIVE MATCH LINKS 👇",
           singleButton(
-            "🏏 Watch Live",
-            env.LIVE_LINK
+            "🏏 WATCH LIVE",
+            link
           )
         );
+
+        return new Response("OK");
       }
 
-      else if (
+      // BACKUP
+      if (
         lower.includes("backup channel") ||
         lower.includes("backup link")
       ) {
+
+        const link =
+          await getLink(
+            "BACKUP_CHANNEL_LINK",
+            env.BACKUP_CHANNEL_LINK
+          );
 
         await sendMessage(
           env.BOT_TOKEN,
           chatId,
           "🔄 BACKUP CHANNEL 👇",
           singleButton(
-            "🔗 Join Backup",
-            env.BACKUP_CHANNEL_LINK
+            "🔗 JOIN BACKUP",
+            link
           )
         );
+
+        return new Response("OK");
       }
 
-      else if (
+      // RULES
+      if (
         lower === "rules" ||
         lower.includes("group rules") ||
         lower.includes("rules kya hai")
@@ -872,6 +1042,8 @@ Please follow the group rules.`
 7️⃣ Follow admin instructions.
 8️⃣ 3 warnings = Permanent Ban 🚫`
         );
+
+        return new Response("OK");
       }
     }
 
@@ -879,7 +1051,10 @@ Please follow the group rules.`
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "Webhook Error:",
+      error
+    );
 
     return new Response(
       "Error",
@@ -890,7 +1065,7 @@ Please follow the group rules.`
 
 
 // ==================================================
-// TELEGRAM SEND MESSAGE
+// SEND MESSAGE
 // ==================================================
 
 async function sendMessage(
@@ -900,29 +1075,20 @@ async function sendMessage(
   replyMarkup = null
 ) {
 
-  const url =
-    `https://api.telegram.org/bot${token}/sendMessage`;
-
   const body = {
     chat_id: chatId,
     text: text
   };
 
   if (replyMarkup) {
-    body.reply_markup = replyMarkup;
+    body.reply_markup =
+      replyMarkup;
   }
 
-  await fetch(
-    url,
-    {
-      method: "POST",
-
-      headers: {
-        "Content-Type": "application/json"
-      },
-
-      body: JSON.stringify(body)
-    }
+  return telegramMethod(
+    token,
+    "sendMessage",
+    body
   );
 }
 
@@ -1000,24 +1166,25 @@ async function isAdmin(
   userId
 ) {
 
-  const url =
-    `https://api.telegram.org/bot${token}/getChatMember` +
-    `?chat_id=${encodeURIComponent(chatId)}` +
-    `&user_id=${encodeURIComponent(userId)}`;
-
   const response =
-    await fetch(url);
+    await telegramMethod(
+      token,
+      "getChatMember",
+      {
+        chat_id: chatId,
+        user_id: userId
+      }
+    );
 
-  const data =
-    await response.json();
-
-  if (!data.ok) {
+  if (!response.ok) {
     return false;
   }
 
   return (
-    data.result.status === "administrator" ||
-    data.result.status === "creator"
+    response.result.status ===
+      "administrator" ||
+    response.result.status ===
+      "creator"
   );
 }
 
@@ -1084,7 +1251,6 @@ async function unbanUser(
     }
   );
 }
-
 
 
 // ==================================================
@@ -1167,7 +1333,7 @@ async function unmuteUser(
 
 
 // ==================================================
-// TELEGRAM API METHOD
+// TELEGRAM API
 // ==================================================
 
 async function telegramMethod(
@@ -1186,12 +1352,14 @@ async function telegramMethod(
         method: "POST",
 
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type":
+            "application/json"
         },
 
-        body: JSON.stringify(payload)
+        body:
+          JSON.stringify(payload)
       }
     );
 
   return response.json();
-} 
+}
