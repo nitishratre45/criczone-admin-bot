@@ -2188,15 +2188,34 @@ function updateLivePreview(){if(!document.getElementById("livePvA"))return;liveP
 async function saveLiveMatch(){const match={team_a:liveTeamA.value,team_b:liveTeamB.value,status:liveStatus.value,score:liveScore.value,overs:liveOvers.value,batting:liveBatting.value,bowling:liveBowling.value,link:liveLink.value,note:liveNote.value};const d=await adminPost({action:"save_live_match",match});liveResult.textContent=d.ok?"✅ Live match saved!":"❌ "+(d.error||"Save failed");updateLivePreview();}
 async function clearLiveMatch(){if(!confirm("Clear the live match from the bot?"))return;const d=await adminPost({action:"clear_live_match"});liveResult.textContent=d.ok?"✅ Live match cleared.":"❌ "+(d.error||"Clear failed");loadLiveMatch();}
 async function saveTemplate(){
-  const template={name:tplName.value.trim(),type:tplType.value,message:tplMessage.value.trim(),media:tplMedia.value.trim(),button_text:tplButtonText.value.trim(),button_url:tplButtonUrl.value,category:tplCategory.value,favorite:false};
+  const editingId=window.editingTemplateId||"";
+  const template={id:editingId||undefined,name:tplName.value.trim(),type:tplType.value,message:tplMessage.value.trim(),media:tplMedia.value.trim(),button_text:tplButtonText.value.trim(),button_url:tplButtonUrl.value,category:tplCategory.value,favorite:false};
   if(!template.name)return alert("Template name is required.");
   if(!template.message&&template.type==="text")return alert("Template message is required.");
   if((template.type==="photo"||template.type==="video")&&!template.media)return alert("Media is required for photo/video.");
   if(template.button_url&&!/^https?:\/\//i.test(template.button_url))return alert("Button URL must start with http:// or https://");
-  const d=await adminPost({action:"save_template",template}); templateResult.textContent=d.ok?"✅ Template saved!":"❌ "+(d.error||"Save failed"); if(d.ok){clearTemplate();loadTemplates();}
+  const d=await adminPost({action:editingId?"update_template":"save_template",template});
+  templateResult.textContent=d.ok?(editingId?"✅ Template updated!":"✅ Template saved!"):"❌ "+(d.error||"Save failed");
+  if(d.ok){window.editingTemplateId="";clearTemplate();loadTemplates();}
 }
-function clearTemplate(){tplName.value="";tplMessage.value="";tplMedia.value="";tplButtonUrl.value="";tplButtonText.value="🏏 Open";tplType.value="text";}
-async function loadTemplates(){const d=await adminGet("templates"),list=d.templates||[],box=document.getElementById("templateList");if(!box)return;list.sort((a,b)=>Number(b.favorite)-Number(a.favorite)||String(a.name||"").localeCompare(String(b.name||"")));box.innerHTML=list.length?list.map(x=>'<div class="v5-card" style="margin-top:10px"><div style="display:flex;justify-content:space-between;gap:10px"><b>'+escapeHTML(x.favorite?"⭐ ":"")+escapeHTML(x.name||"Untitled")+'</b><span class="mini">'+escapeHTML(x.category||"General")+'</span></div><div class="mini" style="margin-top:8px;white-space:pre-wrap">'+escapeHTML(x.message||"")+'</div><div class="actions"><button class="save" onclick="useTemplate(\''+escapeHTML(x.id)+'\')">📢 Use</button><button class="secondary" onclick="toggleTemplateFavorite(\''+escapeHTML(x.id)+'\')">'+(x.favorite?"☆ Unfavorite":"⭐ Favorite")+'</button><button class="secondary" onclick="duplicateTemplate(\''+escapeHTML(x.id)+'\')">📄 Duplicate</button><button class="danger" onclick="deleteTemplate(\''+escapeHTML(x.id)+'\')">🗑️ Delete</button></div></div>').join(""):'<div class="mini">No templates saved.</div>';}
+function editTemplate(id){
+  adminGet("templates").then(d=>{
+    const t=(d.templates||[]).find(x=>String(x.id)===String(id));
+    if(!t)return;
+    window.editingTemplateId=String(t.id);
+    tplName.value=t.name||"";
+    tplType.value=t.type||"text";
+    tplMedia.value=t.media||"";
+    tplButtonText.value=t.button_text||"🏏 Open";
+    tplButtonUrl.value=t.button_url||"";
+    tplCategory.value=t.category||"General";
+    tplMessage.value=t.message||"";
+    templateResult.textContent="✏️ Editing template: "+(t.name||"Untitled");
+    document.getElementById("templates")?.scrollIntoView({behavior:"smooth",block:"start"});
+  });
+}
+function clearTemplate(){window.editingTemplateId="";tplName.value="";tplMessage.value="";tplMedia.value="";tplButtonUrl.value="";tplButtonText.value="🏏 Open";tplType.value="text";tplCategory.value="General";}
+async function loadTemplates(){const d=await adminGet("templates"),list=d.templates||[],box=document.getElementById("templateList");if(!box)return;list.sort((a,b)=>Number(b.favorite)-Number(a.favorite)||String(a.name||"").localeCompare(String(b.name||"")));box.innerHTML=list.length?list.map(x=>'<div class="v5-card" style="margin-top:10px"><div style="display:flex;justify-content:space-between;gap:10px"><b>'+escapeHTML(x.favorite?"⭐ ":"")+escapeHTML(x.name||"Untitled")+'</b><span class="mini">'+escapeHTML(x.category||"General")+'</span></div><div class="mini" style="margin-top:8px;white-space:pre-wrap">'+escapeHTML(x.message||"")+'</div><div class="actions"><button class="save" onclick="editTemplate(\''+escapeHTML(x.id)+'\')">✏️ Edit</button><button class="save" onclick="useTemplate(\''+escapeHTML(x.id)+'\')">'+(x.favorite?"☆ Unfavorite":"⭐ Favorite")+'</button><button class="secondary" onclick="duplicateTemplate(\''+escapeHTML(x.id)+'\')">📄 Duplicate</button><button class="danger" onclick="deleteTemplate(\''+escapeHTML(x.id)+'\')">🗑️ Delete</button></div></div>').join(""):'<div class="mini">No templates saved.</div>';}
 async function useTemplate(id){const d=await adminGet("templates"),t=(d.templates||[]).find(x=>String(x.id)===String(id));if(!t)return;showSection("broadcast");broadcastType.value=t.type||"text";broadcastMessage.value=t.message||"";broadcastMedia.value=t.media||"";broadcastButtonText.value=t.button_text||"🏏 Open";broadcastButtonUrl.value=t.button_url||"";updateBroadcastPreview();}
 async function duplicateTemplate(id){const d=await adminPost({action:"duplicate_template",id});templateResult.textContent=d.ok?"✅ Template duplicated!":"❌ "+(d.error||"Duplicate failed");loadTemplates();}
 async function toggleTemplateFavorite(id){const d=await adminPost({action:"toggle_template_favorite",id});templateResult.textContent=d.ok?"⭐ Favorite updated!":"❌ "+(d.error||"Update failed");loadTemplates();}
