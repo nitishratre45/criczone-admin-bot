@@ -25,10 +25,17 @@ export async function onRequest(context) {
       const post = update.channel_post;
 
       if (env.BOT_KV) {
+        const fanoutEnabled = await getBotSetting(env.BOT_KV, "CHANNEL_FANOUT_ENABLED", "true");
+        if (/^(false|0|off|no)$/i.test(String(fanoutEnabled).trim())) return new Response("OK");
         const userKeys = await listAllKeys(env.BOT_KV, "users:");
 
         for (const key of userKeys) {
           const userId = key.name.replace("users:", "");
+          try {
+            const rawUser = await env.BOT_KV.get(key.name);
+            const user = rawUser ? JSON.parse(rawUser) : {};
+            if (String(user.channel_notifications || "on").toLowerCase() === "off") continue;
+          } catch {}
 
           try {
             const result = await telegramMethod(
@@ -69,6 +76,21 @@ export async function onRequest(context) {
       await answerCallbackQuery(env.BOT_TOKEN, query.id);
 
       if (!callbackChatId || !callbackMessageId) {
+        return new Response("OK");
+      }
+
+      if (data === "resume_notifications") {
+        if (env.BOT_KV) {
+          const raw = await env.BOT_KV.get("users:" + callbackChatId);
+          let user = {};
+          try { user = raw ? JSON.parse(raw) : {}; } catch {}
+          user.user_id = callbackChatId;
+          user.channel_notifications = "on";
+          user.last_active_at = new Date().toISOString();
+          user.status = "active";
+          await env.BOT_KV.put("users:" + callbackChatId, JSON.stringify(user));
+        }
+        await editMessageText(env.BOT_TOKEN, callbackChatId, callbackMessageId, "🔔 Channel notifications are ON again!", await buildMainMenu(env));
         return new Response("OK");
       }
 
@@ -308,6 +330,8 @@ export async function onRequest(context) {
       msg.new_chat_members &&
       msg.new_chat_members.length > 0
     ) {
+      const welcomeEnabled = await getBotSetting(env.BOT_KV, "WELCOME_NEW_MEMBERS", "true");
+      if (/^(false|0|off|no)$/i.test(String(welcomeEnabled).trim())) return new Response("OK");
       for (const user of msg.new_chat_members) {
         const name = escapeText(
           user.first_name ||
@@ -417,6 +441,40 @@ export async function onRequest(context) {
         await buildMainMenu(env)
       );
 
+      return new Response("OK");
+    }
+
+    // ==================================================
+    // NOTIFICATION CONTROLS
+    // ==================================================
+
+    if (command === "/stop") {
+      if (chatType === "private" && env.BOT_KV) {
+        const raw = await env.BOT_KV.get("users:" + chatId);
+        let user = {};
+        try { user = raw ? JSON.parse(raw) : {}; } catch {}
+        user.user_id = chatId;
+        user.channel_notifications = "off";
+        user.last_active_at = new Date().toISOString();
+        user.status = "active";
+        await env.BOT_KV.put("users:" + chatId, JSON.stringify(user));
+      }
+      await sendMessage(env.BOT_TOKEN, chatId, "🔕 Channel notifications paused.\n\nUse /resume anytime to receive CRICZONE channel updates again.", {inline_keyboard:[[ {text:"🔔 Resume Notifications",callback_data:"resume_notifications"} ],[ {text:"🏠 Home",callback_data:"menu"} ]]});
+      return new Response("OK");
+    }
+
+    if (command === "/resume") {
+      if (chatType === "private" && env.BOT_KV) {
+        const raw = await env.BOT_KV.get("users:" + chatId);
+        let user = {};
+        try { user = raw ? JSON.parse(raw) : {}; } catch {}
+        user.user_id = chatId;
+        user.channel_notifications = "on";
+        user.last_active_at = new Date().toISOString();
+        user.status = "active";
+        await env.BOT_KV.put("users:" + chatId, JSON.stringify(user));
+      }
+      await sendMessage(env.BOT_TOKEN, chatId, "🔔 Channel notifications are ON again!", await buildMainMenu(env));
       return new Response("OK");
     }
 
