@@ -465,6 +465,306 @@ textarea {
 
 
 .v5-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.v5-card{background:#0b111a;border:1px solid #202b3a;border-radius:14px;padding:16px}.v5-card h3{margin:0 0 10px}.menu-row{display:grid;grid-template-columns:1fr 1fr 90px 90px;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #202b3a}@media(max-width:900px){.v5-grid{grid-template-columns:1fr}.menu-row{grid-template-columns:1fr 1fr}}
+
+/* ===== Mobile Admin UI ===== */
+@media (max-width: 768px) {
+  html { -webkit-text-size-adjust: 100%; }
+  body { overflow-x: hidden; }
+
+  .login {
+    min-height: 100svh;
+    padding: 16px;
+  }
+
+  .login-box {
+    max-width: 100%;
+    padding: 24px 18px;
+    border-radius: 18px;
+  }
+
+  .logo { font-size: 26px; }
+  .subtitle { margin-bottom: 22px; }
+
+  .app { min-height: 100svh; }
+
+  /* Bottom navigation on phones */
+  .sidebar {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: 100%;
+    height: 72px;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    border-right: 0;
+    border-top: 1px solid #202b3a;
+    background: rgba(11,17,26,.97);
+    backdrop-filter: blur(14px);
+    overflow: hidden;
+  }
+
+  .brand { display: none; }
+
+  .nav {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 2px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .nav::-webkit-scrollbar { display: none; }
+
+  .nav button {
+    flex: 0 0 64px;
+    width: 64px;
+    min-height: 58px;
+    padding: 5px 3px;
+    border-radius: 11px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    text-align: center;
+    color: #8994a5;
+    font-size: 10px;
+    line-height: 1.1;
+    white-space: normal;
+  }
+
+  .nav button:hover,
+  .nav button.active {
+    background: #142019;
+    color: #21d17c;
+  }
+
+  .main {
+    margin-left: 0;
+    padding: 16px 14px 92px;
+    max-width: none;
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    margin: -16px -14px 18px;
+    padding: 14px;
+    background: rgba(7,11,18,.94);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(32,43,58,.75);
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .title {
+    font-size: 22px;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+
+  .status {
+    margin-left: auto;
+    padding: 7px 10px;
+    font-size: 11px;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .dot { width: 7px; height: 7px; }
+
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .card {
+    min-width: 0;
+    border-radius: 14px;
+    padding: 14px;
+  }
+
+  .card-label {
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .card-value {
+    font-size: 23px;
+    margin-top: 6px;
+  }
+
+  .panel {
+    padding: 16px;
+    border-radius: 15px;
+    margin-bottom: 14px;
+  }
+
+  .panel h2 {
+    font-size: 19px;
+    margin-bottom: 14px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .field label {
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+
+  input, textarea, select {
+    font-size: 16px !important; /* prevents iOS zoom */
+    min-height: 46px;
+    border-radius: 11px;
+  }
+
+  textarea {
+    min-height: 130px;
+  }
+
+  button {
+    min-height: 44px;
+    padding: 11px 14px;
+  }
+
+  .actions {
+    gap: 8px;
+    margin-top: 13px;
+  }
+
+  .actions button {
+    flex: 1 1 140px;
+  }
+
+  .search-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .search-row button {
+    width: 100%;
+  }
+
+  /* Users/history/activity tables remain usable without crushing columns */
+  .users-table {
+    min-width: 650px;
+    font-size: 13px;
+  }
+
+  .users-table th,
+  .users-table td {
+    padding: 10px 8px;
+  }
+
+  /* Compact menu editor rows */
+  .menu-row {
+    grid-template-columns: 1fr;
+    gap: 7px;
+    padding: 12px 0;
+  }
+
+  .menu-row label {
+    color: #9ca8b9;
+    font-size: 13px;
+  }
+
+  .v5-grid {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 10px;
+  }
+
+  .v5-card {
+    min-width: 0;
+    padding: 13px;
+    border-radius: 13px;
+  }
+
+  .v5-card h3 {
+    font-size: 14px;
+  }
+
+  /* Make the bot preview feel like a real phone screen */
+  #bot .grid {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+
+  #bot .card {
+    text-align: center;
+  }
+
+  /* Schedule/moderation controls */
+  #schedule .grid,
+  #moderation .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mini {
+    line-height: 1.45;
+  }
+}
+
+@media (max-width: 420px) {
+  .main {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .topbar {
+    margin-left: -10px;
+    margin-right: -10px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .title { font-size: 19px; }
+
+  .status {
+    font-size: 10px;
+    padding: 6px 8px;
+  }
+
+  .cards {
+    gap: 8px;
+  }
+
+  .card {
+    padding: 12px;
+  }
+
+  .card-value {
+    font-size: 21px;
+  }
+
+  .panel {
+    padding: 13px;
+  }
+
+  .panel h2 {
+    font-size: 18px;
+  }
+
+  .v5-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .nav button {
+    flex-basis: 60px;
+    width: 60px;
+  }
+}
+
 </style>
 
 </head>
