@@ -219,8 +219,15 @@ export async function onRequest(context) {
           button_text: String(body.schedule?.button_text || "").slice(0, 80),
           button_url: String(body.schedule?.button_url || "").trim().slice(0, 2000)
         };
-        if (!schedule.run_at || !Number.isFinite(Date.parse(schedule.run_at))) {
+        const runAtMs = Date.parse(schedule.run_at);
+        if (!schedule.run_at || !Number.isFinite(runAtMs)) {
           return json({ ok:false, error:"Valid run_at date/time is required" }, 400, cors);
+        }
+        if (runAtMs <= Date.now()) {
+          return json({ ok:false, error:"Scheduled time must be in the future" }, 400, cors);
+        }
+        if (schedule.button_url && !/^https?:\\/\\//i.test(schedule.button_url)) {
+          return json({ ok:false, error:"Button URL must start with http:// or https://" }, 400, cors);
         }
         if ((schedule.type === "photo" || schedule.type === "video") && !schedule.media) {
           return json({ ok:false, error:"Media URL/file_id is required for photo/video" }, 400, cors);
@@ -351,8 +358,21 @@ async function handleBroadcast(env, body, cors) {
       } else {
         result = await telegramMethod(env.BOT_TOKEN,"sendMessage",{chat_id,text:message,reply_markup});
       }
-      result?.ok ? sent++ : failed++;
-    } catch { failed++; }
+      if (result?.ok) {
+        sent++;
+      } else {
+        failed++;
+        if (result?.error_code === 400 && /chat not found|user is deactivated|bot was blocked|kicked/i.test(String(result?.description || ""))) {
+          try { await env.BOT_KV.delete(key.name); } catch {}
+        }
+      }
+    } catch (error) {
+      failed++;
+      if (/chat not found|user is deactivated|bot was blocked|kicked/i.test(String(error?.message || ""))) {
+        try { await env.BOT_KV.delete(key.name); } catch {}
+      }
+    }
+    await new Promise(resolve => setTimeout(resolve, 40));
   }
 
   const record = {
@@ -362,7 +382,7 @@ async function handleBroadcast(env, body, cors) {
     button_url:String(body.button_url||"")
   };
   try { await env.BOT_KV.put("broadcast:"+record.id,JSON.stringify(record),{expirationTtl:60*60*24*90}); } catch {}
-  await logActivity(env,"broadcast","Sent "+type+" broadcast to "+users.length+" users");
+  await logActivity(env,"broadcast","Sent "+type+" broadcast: "+sent+" delivered, "+failed+" failed");
   return json({ok:true,sent,failed,total:users.length},200,cors);
 }
 
