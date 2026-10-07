@@ -793,7 +793,7 @@ textarea {
   .health-items{justify-content:flex-start;margin-top:12px}
   .telegram-preview{max-width:none}
 }
-</style>
+.vs-live-card{margin-top:16px;padding:16px;border-radius:15px;background:#0b111a;border:1px solid #202b3a;text-align:center}.vs-teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;margin:12px 0;font-size:20px;font-weight:800}.vs-teams b{font-size:13px;color:#21d17c}.vs-meta{color:#9ca8b9;font-size:13px}.vs-status{display:inline-block;margin-top:12px;padding:6px 10px;border-radius:999px;background:#142019;color:#21d17c;font-size:12px}@media(max-width:768px){.vs-teams{font-size:17px;gap:7px}}</style>
 
 </head>
 
@@ -1231,6 +1231,7 @@ textarea {
           >
             🔎 Search
           </button>
+          <button class="secondary" onclick="exportUsersCSV()">⬇️ Export CSV</button>
         </div>
 
         <div class="mini" id="userTotal">
@@ -1287,7 +1288,13 @@ textarea {
     <section id="menu" style="display:none"><div class="panel"><h2>🧭 Menu Editor</h2><p class="mini">Edit labels, order and visibility.</p><div id="menuRows"></div><div class="actions"><button class="save" onclick="saveMenu()">💾 Save Menu</button><button class="secondary" onclick="loadMenu()">🔄 Reload</button></div><div id="menuResult" class="result"></div></div></section>
     <section id="vs" style="display:none"><div class="panel"><h2>⚔️ VS Match Manager</h2><div class="grid">
       <div class="field"><label>Team A</label><input id="vsTeamA"></div><div class="field"><label>Team B</label><input id="vsTeamB"></div><div class="field"><label>Date</label><input id="vsDate"></div><div class="field"><label>Time</label><input id="vsTime"></div><div class="field"><label>Venue</label><input id="vsVenue"></div><div class="field"><label>Status</label><input id="vsStatus" value="Upcoming"></div><div class="field"><label>Match Link</label><input id="vsLink"></div>
-    </div><div class="actions"><button class="save" onclick="saveVS()">💾 Save VS Match</button></div><div id="vsResult" class="result"></div></div></section>
+    </div><div class="vs-live-card" id="vsPreview">
+        <div class="mini">👀 Match Preview</div>
+        <div class="vs-teams"><span id="pvTeamA">Team A</span><b>VS</b><span id="pvTeamB">Team B</span></div>
+        <div class="vs-meta" id="pvMeta">📅 Date • ⏰ Time • 📍 Venue</div>
+        <div class="vs-status" id="pvStatus">🟢 Upcoming</div>
+      </div>
+      <div class="actions"><button class="save" onclick="saveVS()">💾 Save VS Match</button><button class="secondary" onclick="loadVS()">🔄 Reload</button></div><div id="vsResult" class="result"></div></div></section>
     <section id="analytics" style="display:none"><div class="panel"><h2>📈 Analytics Dashboard</h2><div class="v5-grid" id="analyticsCards"></div><div class="panel" style="margin-top:18px"><h3>📊 User Growth</h3><div id="growthStats" class="mini"></div></div></div></section>
     <section id="schedule" style="display:none">
 <div class="panel">
@@ -1951,6 +1958,17 @@ async function saveSettings() {
 }
 
 
+function exportUsersCSV(){
+  const rows=[["Name","Username","User ID","Joined"]];
+  document.querySelectorAll("#usersBody tr").forEach(tr=>{
+    const cells=[...tr.querySelectorAll("td")].slice(0,4).map(td=>td.innerText.replace(/"/g,'""'));
+    if(cells.length===4)rows.push(cells);
+  });
+  if(rows.length===1){alert("Load users first.");return;}
+  const csv=rows.map(r=>r.map(v=>'"'+v+'"').join(",")).join("\n");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="criczone-users.csv";a.click();URL.revokeObjectURL(a.href);
+}
 function escapeHTML(value) {
 
   return String(value ?? "")
@@ -2003,8 +2021,21 @@ async function adminGet(view){const r=await fetch(view?"/api/admin?view="+encode
 async function adminPost(body){const r=await fetch("/api/admin",{method:"POST",headers:{"Content-Type":"application/json","X-Admin-Key":ADMIN_KEY},body:JSON.stringify(body)});return r.json();}
 async function loadMenu(){const d=await adminGet();let m=[];try{m=JSON.parse(d.settings.MENU_CONFIG||"[]")}catch{}if(!m.length)m=[["🏏 HUB","GROUP_LINK"],["📢 Main","MAIN_CHANNEL_LINK"],["🔄 Backup","BACKUP_CHANNEL_LINK"],["⚔️ VS Match","VS_MATCH_LINK"],["🔴 Live","LIVE_LINK"],["📊 Score","SCORE_LINK"],["📅 Schedule","SCHEDULE_LINK"],["📺 Stream","STREAM_LINK"],["🔗 All Links","ALL_LINKS"],["📜 Rules","RULES"],["ℹ️ About","ABOUT"],["👨‍💻 Admin","ADMIN_LINK"]].map((x,i)=>({label:x[0],key:x[1],visible:true,order:i}));const b=document.getElementById("menuRows");b.innerHTML="";m.forEach((x,i)=>{const r=document.createElement("div");r.className="menu-row";r.innerHTML='<input class="mlabel" value="'+escapeHTML(x.label)+'"><input class="mkey" value="'+escapeHTML(x.key)+'"><input class="morder" type="number" value="'+Number(x.order||i)+'"><label><input class="mvis" type="checkbox" '+(x.visible!==false?"checked":"")+'> Visible</label>';b.appendChild(r);});}
 async function saveMenu(){const menu=[...document.querySelectorAll(".menu-row")].map((r,i)=>({label:r.querySelector(".mlabel").value,key:r.querySelector(".mkey").value,order:Number(r.querySelector(".morder").value||i),visible:r.querySelector(".mvis").checked}));const d=await adminPost({action:"save_menu",menu});document.getElementById("menuResult").textContent=d.ok?"Menu saved successfully!":"Error: "+d.error;}
-async function loadVS(){const d=await adminGet();let m={};try{m=JSON.parse(d.settings.VS_MATCH||"{}")}catch{}vsTeamA.value=m.team_a||"";vsTeamB.value=m.team_b||"";vsDate.value=m.date||"";vsTime.value=m.time||"";vsVenue.value=m.venue||"";vsStatus.value=m.status||"Upcoming";vsLink.value=m.link||d.config.VS_MATCH_LINK||"";}
-async function saveVS(){const match={team_a:vsTeamA.value,team_b:vsTeamB.value,date:vsDate.value,time:vsTime.value,venue:vsVenue.value,status:vsStatus.value,link:vsLink.value};const d=await adminPost({action:"save_vs_match",match});vsResult.textContent=d.ok?"VS Match saved!":"Error: "+d.error;}
+function updateVSPreview(){
+  const a=document.getElementById("vsTeamA")?.value.trim()||"Team A";
+  const b=document.getElementById("vsTeamB")?.value.trim()||"Team B";
+  const date=document.getElementById("vsDate")?.value.trim()||"Date";
+  const time=document.getElementById("vsTime")?.value.trim()||"Time";
+  const venue=document.getElementById("vsVenue")?.value.trim()||"Venue";
+  const status=document.getElementById("vsStatus")?.value.trim()||"Upcoming";
+  document.getElementById("pvTeamA").textContent=a;
+  document.getElementById("pvTeamB").textContent=b;
+  document.getElementById("pvMeta").textContent="📅 "+date+" • ⏰ "+time+" • 📍 "+venue;
+  const icon=/live/i.test(status)?"🔴":/complete|finished/i.test(status)?"✅":"🟢";
+  document.getElementById("pvStatus").textContent=icon+" "+status;
+}
+async function loadVS(){const d=await adminGet();let m={};try{m=JSON.parse(d.settings.VS_MATCH||"{}")}catch{}vsTeamA.value=m.team_a||"";vsTeamB.value=m.team_b||"";vsDate.value=m.date||"";vsTime.value=m.time||"";vsVenue.value=m.venue||"";vsStatus.value=m.status||"Upcoming";vsLink.value=m.link||d.config.VS_MATCH_LINK||"";updateVSPreview();}
+async function saveVS(){const match={team_a:vsTeamA.value,team_b:vsTeamB.value,date:vsDate.value,time:vsTime.value,venue:vsVenue.value,status:vsStatus.value,link:vsLink.value};const d=await adminPost({action:"save_vs_match",match});vsResult.textContent=d.ok?"✅ VS Match saved!":"❌ Error: "+d.error;updateVSPreview();}
 async function loadAnalytics(){const d=await adminGet("analytics"),g=d.growth||{};analyticsCards.innerHTML='<div class="v5-card"><h3>👥 Users</h3><b>'+d.users+'</b><div class="mini">Registered</div></div><div class="v5-card"><h3>📢 Broadcasts</h3><b>'+d.broadcasts+'</b><div class="mini">Sent records</div></div><div class="v5-card"><h3>📝 Activity</h3><b>'+d.activity+'</b><div class="mini">Admin actions</div></div><div class="v5-card"><h3>⏰ Schedules</h3><b>'+ (d.schedules||0) +'</b><div class="mini">Pending records</div></div>';growthStats.innerHTML="<b>Growth</b><br>Today: "+(g.today||0)+" • 7 days: "+(g.last7||0)+" • 30 days: "+(g.last30||0);}
 function getScheduleISO(){
   const date=document.getElementById("schDate").value;
@@ -2050,6 +2081,11 @@ async function saveSchedule(){
   }
 }
 document.addEventListener("DOMContentLoaded",()=>{
+  ["vsTeamA","vsTeamB","vsDate","vsTime","vsVenue","vsStatus"].forEach(id=>{
+    const e=document.getElementById(id);
+    if(e){e.addEventListener("input",updateVSPreview);e.addEventListener("change",updateVSPreview);}
+  });
+
   ["broadcastButtonText","broadcastButtonUrl","broadcastType"].forEach(id=>{
     const e=document.getElementById(id);
     if(e)e.addEventListener("input",updateBroadcastPreview);
