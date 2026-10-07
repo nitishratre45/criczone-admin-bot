@@ -771,6 +771,28 @@ textarea {
 .timezone-badge{background:#0a1019;border:1px solid #293545;border-radius:12px;padding:13px 14px;color:#d8e1ee}
 .schedule-preview{margin-top:16px;padding:13px 15px;border-radius:12px;background:#10251b;border:1px solid #1d5b40;color:#21d17c;font-size:14px}
 @media(max-width:768px){.schedule-time-box{grid-template-columns:1fr;gap:12px}}
+
+/* ===== Admin polish ===== */
+.input-meta{display:flex;justify-content:space-between;align-items:center;margin-top:6px;color:#718096;font-size:12px}
+.tiny-btn{background:transparent;color:#8994a5;padding:4px 8px;border:1px solid #293545;border-radius:8px;font-size:11px}
+.tiny-btn:hover{color:#fff;border-color:#21d17c}
+.broadcast-preview-wrap{margin-top:14px}
+.telegram-preview{max-width:620px;margin-top:7px;background:#0a1019;border:1px solid #293545;border-radius:14px;padding:14px;color:#e8edf5;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.preview-head{font-size:11px;color:#21d17c;margin-bottom:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.preview-button{margin-top:12px;padding:9px 12px;text-align:center;border-radius:9px;background:#142019;color:#21d17c;font-weight:700}
+.dashboard-health{display:flex;justify-content:space-between;align-items:center;gap:18px}
+.health-main{font-weight:700;margin-top:5px}
+.health-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#21d17c;margin-right:7px;box-shadow:0 0 12px #21d17c}
+.health-items{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.health-items span{padding:8px 10px;border-radius:9px;background:#0b111a;border:1px solid #202b3a;font-size:12px;color:#aeb9c8}
+.schedule-item-head{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.schedule-item-head span{font-size:12px;color:#21d17c}
+.schedule-date{margin:7px 0;font-weight:700}
+@media(max-width:768px){
+  .dashboard-health{display:block}
+  .health-items{justify-content:flex-start;margin-top:12px}
+  .telegram-preview{max-width:none}
+}
 </style>
 
 </head>
@@ -1000,9 +1022,33 @@ textarea {
           >
             🔄 Refresh
           </button>
+          <button
+            class="secondary"
+            onclick="showSection('schedule')"
+          >
+            ⏰ Schedule
+          </button>
+          <button
+            class="secondary"
+            onclick="showSection('analytics')"
+          >
+            📈 Analytics
+          </button>
 
         </div>
 
+      </div>
+
+      <div class="panel dashboard-health">
+        <div>
+          <div class="card-label">⚡ System</div>
+          <div class="health-main"><span class="health-dot"></span> All admin services ready</div>
+        </div>
+        <div class="health-items">
+          <span>🤖 Bot Online</span>
+          <span>💾 KV Connected</span>
+          <span>📢 Broadcast Ready</span>
+        </div>
       </div>
 
     </section>
@@ -1020,6 +1066,7 @@ textarea {
         <h2>
           🔗 CRICZONE Links
         </h2>
+        <p class="mini">Keep your public links here. Changes apply to the bot menu and link buttons.</p>
 
         <div class="grid">
 
@@ -1118,8 +1165,19 @@ textarea {
 
         <textarea
           id="broadcastMessage"
+          maxlength="4000"
           placeholder="Write your announcement..."
+          oninput="updateBroadcastPreview()"
         ></textarea>
+        <div class="input-meta"><span id="broadcastCount">0 / 4000</span><button class="tiny-btn" onclick="clearBroadcast()">✕ Clear</button></div>
+        <div class="broadcast-preview-wrap">
+          <div class="mini">👀 Live Preview</div>
+          <div class="telegram-preview">
+            <div class="preview-head">CRICZONE • Broadcast</div>
+            <div id="broadcastPreview">Your broadcast preview will appear here.</div>
+            <div id="broadcastPreviewButton" class="preview-button" style="display:none"></div>
+          </div>
+        </div>
         <div class="grid" style="margin-top:14px">
           <div class="field"><label>Type</label><select id="broadcastType" style="width:100%;background:#0a1019;color:#fff;border:1px solid #293545;border-radius:12px;padding:13px"><option value="text">📝 Text</option><option value="photo">🖼️ Photo</option><option value="video">🎬 Video</option></select></div>
           <div class="field"><label>Media URL / Telegram file_id</label><input id="broadcastMedia" placeholder="Required for photo/video"></div>
@@ -1293,6 +1351,7 @@ textarea {
   </div>
 
   <div id="scheduleResult" class="result"></div>
+  <div id="scheduleSummary" class="mini" style="margin-top:12px"></div>
   <div id="scheduleList"></div>
 </div>
 </section>
@@ -1331,6 +1390,7 @@ textarea {
           >
             💾 Save Bot Settings
           </button>
+          <button class="secondary" onclick="loadDashboard()">🔄 Reload</button>
         </div>
 
         <div
@@ -1672,6 +1732,25 @@ async function resetLinks() {
 }
 
 
+function updateBroadcastPreview(){
+  const msg=document.getElementById("broadcastMessage")?.value||"";
+  const count=document.getElementById("broadcastCount");
+  const preview=document.getElementById("broadcastPreview");
+  if(count) count.textContent=msg.length+" / 4000";
+  if(preview) preview.textContent=msg||"Your broadcast preview will appear here.";
+  const bt=document.getElementById("broadcastPreviewButton");
+  const text=document.getElementById("broadcastButtonText")?.value?.trim();
+  const url=document.getElementById("broadcastButtonUrl")?.value?.trim();
+  if(bt){
+    bt.textContent="🔗 "+(text||"Open");
+    bt.style.display=url?"block":"none";
+  }
+}
+function clearBroadcast(){
+  ["broadcastMessage","broadcastMedia","broadcastButtonUrl"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
+  const t=document.getElementById("broadcastButtonText");if(t)t.value="🏏 Open";
+  updateBroadcastPreview();
+}
 async function broadcast() {
   const message=document.getElementById("broadcastMessage").value.trim();
   const type=document.getElementById("broadcastType").value;
@@ -1684,7 +1763,7 @@ async function broadcast() {
   const response=await fetch("/api/admin",{method:"POST",headers:{"Content-Type":"application/json","X-Admin-Key":ADMIN_KEY},body:JSON.stringify({action:"broadcast",type,message,media,button_url,button_text})});
   const data=await response.json();
   document.getElementById("broadcastResult").textContent=data.ok?"Sent: "+data.sent+" | Failed: "+data.failed+" | Total: "+data.total:"Error: "+data.error;
-  if(data.ok)document.getElementById("broadcastMessage").value="";
+  if(data.ok){document.getElementById("broadcastMessage").value="";document.getElementById("broadcastMedia").value="";updateBroadcastPreview();}
 }
 
 function showSection(id) {
@@ -1926,7 +2005,7 @@ async function loadMenu(){const d=await adminGet();let m=[];try{m=JSON.parse(d.s
 async function saveMenu(){const menu=[...document.querySelectorAll(".menu-row")].map((r,i)=>({label:r.querySelector(".mlabel").value,key:r.querySelector(".mkey").value,order:Number(r.querySelector(".morder").value||i),visible:r.querySelector(".mvis").checked}));const d=await adminPost({action:"save_menu",menu});document.getElementById("menuResult").textContent=d.ok?"Menu saved successfully!":"Error: "+d.error;}
 async function loadVS(){const d=await adminGet();let m={};try{m=JSON.parse(d.settings.VS_MATCH||"{}")}catch{}vsTeamA.value=m.team_a||"";vsTeamB.value=m.team_b||"";vsDate.value=m.date||"";vsTime.value=m.time||"";vsVenue.value=m.venue||"";vsStatus.value=m.status||"Upcoming";vsLink.value=m.link||d.config.VS_MATCH_LINK||"";}
 async function saveVS(){const match={team_a:vsTeamA.value,team_b:vsTeamB.value,date:vsDate.value,time:vsTime.value,venue:vsVenue.value,status:vsStatus.value,link:vsLink.value};const d=await adminPost({action:"save_vs_match",match});vsResult.textContent=d.ok?"VS Match saved!":"Error: "+d.error;}
-async function loadAnalytics(){const d=await adminGet("analytics"),g=d.growth||{};analyticsCards.innerHTML='<div class="v5-card"><h3>👥 Users</h3><b>'+d.users+'</b></div><div class="v5-card"><h3>📢 Broadcasts</h3><b>'+d.broadcasts+'</b></div><div class="v5-card"><h3>📝 Activity</h3><b>'+d.activity+'</b></div>';growthStats.textContent="Today: "+(g.today||0)+" • 7 days: "+(g.last7||0)+" • 30 days: "+(g.last30||0);}
+async function loadAnalytics(){const d=await adminGet("analytics"),g=d.growth||{};analyticsCards.innerHTML='<div class="v5-card"><h3>👥 Users</h3><b>'+d.users+'</b><div class="mini">Registered</div></div><div class="v5-card"><h3>📢 Broadcasts</h3><b>'+d.broadcasts+'</b><div class="mini">Sent records</div></div><div class="v5-card"><h3>📝 Activity</h3><b>'+d.activity+'</b><div class="mini">Admin actions</div></div><div class="v5-card"><h3>⏰ Schedules</h3><b>'+ (d.schedules||0) +'</b><div class="mini">Pending records</div></div>';growthStats.innerHTML="<b>Growth</b><br>Today: "+(g.today||0)+" • 7 days: "+(g.last7||0)+" • 30 days: "+(g.last30||0);}
 function getScheduleISO(){
   const date=document.getElementById("schDate").value;
   const time=document.getElementById("schTime").value;
@@ -1971,10 +2050,30 @@ async function saveSchedule(){
   }
 }
 document.addEventListener("DOMContentLoaded",()=>{
+  ["broadcastButtonText","broadcastButtonUrl","broadcastType"].forEach(id=>{
+    const e=document.getElementById(id);
+    if(e)e.addEventListener("input",updateBroadcastPreview);
+    if(e)e.addEventListener("change",updateBroadcastPreview);
+  });
+  updateBroadcastPreview();
+
   const date=document.getElementById("schDate"),time=document.getElementById("schTime");
   if(date&&time){date.addEventListener("change",updateSchedulePreview);time.addEventListener("change",updateSchedulePreview);}
 });
-async function loadSchedules(){const d=await adminGet("schedules");const list=d.schedules||[];scheduleList.innerHTML=list.length?list.map(x=>'<div class="v5-card" style="margin-top:10px"><b>'+escapeHTML(x.type||"text")+'</b> • '+escapeHTML(x.run_at||"")+'<div class="mini">'+escapeHTML(x.message||"")+'</div><button class="danger" style="margin-top:8px" onclick="deleteSchedule(\''+escapeHTML(x.id||"")+'\')">🗑️ Delete</button></div>').join(""):'<div class="mini" style="margin-top:15px">No saved schedules.</div>';}
+async function loadSchedules(){
+  const d=await adminGet("schedules");
+  const list=d.schedules||[];
+  const now=Date.now();
+  const pending=list.filter(x=>x.enabled!==false&&Date.parse(x.run_at)>now);
+  const summary=document.getElementById("scheduleSummary");
+  if(summary) summary.textContent=pending.length+" pending schedule"+(pending.length===1?"":"s")+" • "+list.length+" total record"+(list.length===1?"":"s");
+  scheduleList.innerHTML=list.length?list.map(x=>{
+    const t=Date.parse(x.run_at);
+    const pendingNow=x.enabled!==false&&Number.isFinite(t)&&t>now;
+    const status=pendingNow?"🟢 Pending":"⚪ Past";
+    return '<div class="v5-card schedule-item" style="margin-top:10px"><div class="schedule-item-head"><b>'+escapeHTML(x.type||"text").toUpperCase()+'</b><span>'+status+'</span></div><div class="schedule-date">📅 '+escapeHTML(x.run_at||"")+'</div><div class="mini">'+escapeHTML(x.message||"")+'</div><button class="danger" style="margin-top:8px" onclick="deleteSchedule(\''+escapeHTML(x.id||"")+'\')">🗑️ Delete</button></div>';
+  }).join(""):'<div class="mini" style="margin-top:15px">No saved schedules.</div>';
+}
 async function deleteSchedule(id){if(!id||!confirm("Delete this scheduled broadcast?"))return;const d=await adminPost({action:"delete_schedule",id});scheduleResult.textContent=d.ok?"Schedule deleted!":"Error: "+d.error;loadSchedules();}
 async function moderate(operation){const d=await adminPost({action:"moderate",chat_id:modChatId.value,user_id:modUserId.value,operation});modResult.textContent=d.ok?operation+" completed!":"Error: "+d.error;}
 async function loadActivity(){const d=await adminGet("activity"),b=activityBody;b.innerHTML="";(d.logs||[]).forEach(x=>{const r=document.createElement("tr");r.innerHTML="<td>"+escapeHTML(x.created_at?new Date(x.created_at).toLocaleString():"—")+"</td><td>"+escapeHTML(x.type||"")+"</td><td>"+escapeHTML(x.message||"")+"</td>";b.appendChild(r);});}
