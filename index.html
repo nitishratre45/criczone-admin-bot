@@ -534,6 +534,12 @@ textarea {
       </button>
 
       <button
+        onclick="showSection('history')"
+      >
+        🕘 History
+      </button>
+
+      <button
         onclick="showSection('settings')"
       >
         ⚙️ Settings
@@ -843,6 +849,7 @@ textarea {
                 <th>Username</th>
                 <th>User ID</th>
                 <th>Joined</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody id="usersBody"></tbody>
@@ -851,6 +858,33 @@ textarea {
 
       </div>
 
+    </section>
+
+
+    <!-- HISTORY -->
+
+    <section id="history" style="display:none">
+      <div class="panel">
+        <h2>🕘 Broadcast History</h2>
+        <div class="actions">
+          <button class="secondary" onclick="loadHistory()">🔄 Refresh History</button>
+        </div>
+        <div class="mini" id="historyTotal">Loading...</div>
+        <div style="overflow-x:auto">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Preview</th>
+                <th>Sent</th>
+                <th>Failed</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
 
@@ -1314,6 +1348,7 @@ function showSection(id) {
     "links",
     "broadcast",
     "users",
+    "history",
     "settings",
     "bot"
   ];
@@ -1339,6 +1374,9 @@ function showSection(id) {
           "active"
         )
     );
+  
+  if (id === "users") loadUsers();
+  if (id === "history") loadHistory();
 }
 
 
@@ -1396,7 +1434,76 @@ async function loadUsers() {
       <td>${user.username ? "@" + escapeHTML(user.username) : "—"}</td>
       <td>${escapeHTML(String(user.user_id))}</td>
       <td>${escapeHTML(joined)}</td>
+      <td>
+        <button class="danger" style="padding:7px 10px"
+          onclick="deleteUser('${escapeHTML(String(user.user_id))}')">
+          🗑️ Remove
+        </button>
+      </td>
     `;
+
+    body.appendChild(row);
+  });
+}
+
+
+async function deleteUser(userId) {
+  if (!confirm("Remove user " + userId + " from registered users?")) return;
+
+  const response = await fetch("/api/admin", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Admin-Key": ADMIN_KEY
+    },
+    body: JSON.stringify({
+      action: "delete_user",
+      user_id: userId
+    })
+  });
+
+  const data = await response.json();
+
+  if (data.ok) {
+    loadUsers();
+    loadDashboard();
+  } else {
+    alert("❌ " + (data.error || "Unable to remove user"));
+  }
+}
+
+
+async function loadHistory() {
+  const response = await fetch("/api/admin?view=history", {
+    headers: { "X-Admin-Key": ADMIN_KEY }
+  });
+
+  if (!response.ok) {
+    logout();
+    return;
+  }
+
+  const data = await response.json();
+  const history = data.history || [];
+
+  document.getElementById("historyTotal").textContent =
+    history.length + " recent broadcasts";
+
+  const body = document.getElementById("historyBody");
+  body.innerHTML = "";
+
+  history.forEach(item => {
+    const row = document.createElement("tr");
+    const date = item.created_at
+      ? new Date(item.created_at).toLocaleString()
+      : "—";
+
+    row.innerHTML =
+      "<td>" + escapeHTML(date) + "</td>" +
+      "<td>" + escapeHTML(item.preview || "") + "</td>" +
+      "<td>🟢 " + escapeHTML(String(item.sent ?? 0)) + "</td>" +
+      "<td>🔴 " + escapeHTML(String(item.failed ?? 0)) + "</td>" +
+      "<td>" + escapeHTML(String(item.total ?? 0)) + "</td>";
 
     body.appendChild(row);
   });
