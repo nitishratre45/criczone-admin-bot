@@ -1168,6 +1168,7 @@ textarea {
           </div>
         </div>
         <div class="grid" style="margin-top:14px">
+          <div class="field"><label>🎯 Audience</label><select id="broadcastAudience" style="width:100%;background:#0a1019;color:#fff;border:1px solid #293545;border-radius:12px;padding:13px" onchange="updateBroadcastAudience()"><option value="all">👥 All registered users</option><option value="active24h">🟢 Active in last 24h</option><option value="notify_on">🔔 Notifications ON</option></select><div class="mini" id="broadcastAudienceHint">Loading audience estimate...</div></div>
           <div class="field"><label>Type</label><select id="broadcastType" style="width:100%;background:#0a1019;color:#fff;border:1px solid #293545;border-radius:12px;padding:13px"><option value="text">📝 Text</option><option value="photo">🖼️ Photo</option><option value="video">🎬 Video</option></select></div>
           <div class="field"><label>Media URL / Telegram file_id</label><input id="broadcastMedia" placeholder="Required for photo/video"></div><div class="field"><label>Upload Media</label><input id="broadcastMediaFile" type="file" accept="image/*,video/*" onchange="syncUploadType('broadcast')"><div class="actions" style="margin-top:8px"><button type="button" class="secondary" onclick="uploadAdminMedia('broadcast')">⬆️ Upload Media</button></div><div class="mini">Upload from your PC. Telegram file_id will be added automatically.</div></div>
           <div class="field"><label>Button URL</label><input id="broadcastButtonUrl" placeholder="https://..."></div>
@@ -1715,6 +1716,18 @@ async function broadcast() {
   if(data.ok){document.getElementById("broadcastMessage").value="";document.getElementById("broadcastMedia").value="";updateBroadcastPreview();}
 }
 
+async function updateBroadcastAudience(){
+  const hint=document.getElementById("broadcastAudienceHint");
+  const select=document.getElementById("broadcastAudience");
+  if(!hint||!select)return;
+  try{
+    const d=await adminGet("user_stats");
+    const map={all:d.total||0,active24h:d.active24h||0,notify_on:d.notifyOn||0};
+    const label=select.value==="active24h"?"active in the last 24h":select.value==="notify_on"?"with notifications ON":"registered";
+    hint.textContent="Estimated recipients: "+map[select.value]+" • "+label;
+  }catch(e){hint.textContent="Audience estimate unavailable.";}
+}
+
 function showSection(id) {
   const sections=["dashboard","links","broadcast","templates","users","history","settings","bot","menu","vs","analytics","moderation","activity"];
   sections.forEach(section=>{const el=document.getElementById(section);if(el)el.style.display=section===id?"block":"none";});
@@ -1987,7 +2000,7 @@ function updateVSPreview(){
 }
 async function loadVS(){const d=await adminGet();let m={};try{m=JSON.parse(d.settings.VS_MATCH||"{}")}catch{}vsTeamA.value=m.team_a||"";vsTeamB.value=m.team_b||"";vsDate.value=m.date||"";vsTime.value=m.time||"";vsVenue.value=m.venue||"";vsStatus.value=m.status||"Upcoming";vsLink.value=m.link||d.config.VS_MATCH_LINK||"";updateVSPreview();}
 async function saveVS(){const match={team_a:vsTeamA.value,team_b:vsTeamB.value,date:vsDate.value,time:vsTime.value,venue:vsVenue.value,status:vsStatus.value,link:vsLink.value};const d=await adminPost({action:"save_vs_match",match});vsResult.textContent=d.ok?"✅ VS Match saved!":"❌ Error: "+d.error;updateVSPreview();}
-async function loadAnalytics(){const d=await adminGet("analytics"),g=d.growth||{};analyticsCards.innerHTML='<div class="v5-card"><h3>👥 Users</h3><b>'+d.users+'</b><div class="mini">Registered</div></div><div class="v5-card"><h3>🟢 Active</h3><b>'+ (d.active24h||0) +'</b><div class="mini">Active in 24h</div></div><div class="v5-card"><h3>📢 Broadcasts</h3><b>'+d.broadcasts+'</b><div class="mini">Delivery records</div></div><div class="v5-card"><h3>📬 Delivered</h3><b>'+ (d.delivered||0) +'</b><div class="mini">Messages delivered</div></div><div class="v5-card"><h3>🔴 Failed</h3><b>'+ (d.failed||0) +'</b><div class="mini">Delivery failures</div></div><div class="v5-card"><h3>⏰ Schedules</h3><b>'+ (d.schedules||0) +'</b><div class="mini">Pending records</div></div>';growthStats.innerHTML="<b>Growth</b><br>Today: "+(g.today||0)+" • 7 days: "+(g.last7||0)+" • 30 days: "+(g.last30||0)+"<br><b>Delivery</b><br>"+(d.delivered||0)+" delivered • "+(d.failed||0)+" failed";}
+async function loadAnalytics(){const d=await adminGet("analytics"),g=d.growth||{},p=d.growthPct||{};analyticsCards.innerHTML='<div class="v5-card"><h3>👥 Users</h3><b>'+d.users+'</b><div class="mini">Registered</div></div><div class="v5-card"><h3>🟢 Active</h3><b>'+ (d.active24h||0) +'</b><div class="mini">Active in 24h</div></div><div class="v5-card"><h3>📢 Broadcasts</h3><b>'+d.broadcasts+'</b><div class="mini">Delivery records</div></div><div class="v5-card"><h3>📬 Delivered</h3><b>'+ (d.delivered||0) +'</b><div class="mini">Messages delivered</div></div><div class="v5-card"><h3>🔴 Failed</h3><b>'+ (d.failed||0) +'</b><div class="mini">Delivery failures</div></div>';growthStats.innerHTML="<b>New users</b><br>Today: "+(g.today||0)+" ("+(p.today||0)+"%) • 7 days: "+(g.last7||0)+" ("+(p.last7||0)+"%) • 30 days: "+(g.last30||0)+" ("+(p.last30||0)+"%)+"<br><b>Delivery</b><br>"+(d.delivered||0)+" delivered • "+(d.failed||0)+" failed";}
 function syncUploadType(target){const typeEl=document.getElementById(target==="broadcast"?"broadcastType":"schType");const file=document.getElementById(target==="broadcast"?"broadcastMediaFile":"schMediaFile")?.files?.[0];if(typeEl&&file)typeEl.value=file.type.startsWith("video/")?"video":"photo";}
 async function uploadAdminMedia(target){const file=document.getElementById(target==="broadcast"?"broadcastMediaFile":"schMediaFile")?.files?.[0];const typeEl=document.getElementById(target==="broadcast"?"broadcastType":"schType");const type=(typeEl?.value==="video"||file?.type?.startsWith("video/"))?"video":"photo";const status=document.getElementById("mediaUploadStatus");if(!file){alert("Choose a photo or video first.");return;}const max=type==="photo"?10*1024*1024:50*1024*1024;if(file.size>max){alert((type==="photo"?"Photo":"Video")+" is too large.");return;}if(status)status.textContent="⏳ Uploading "+file.name+"...";const form=new FormData();form.append("action","upload_media");form.append("type",type);form.append("file",file,file.name);try{const r=await fetch("/api/admin",{method:"POST",headers:{"X-Admin-Key":ADMIN_KEY},body:form});const d=await r.json();if(!d.ok){if(status)status.textContent="❌ "+(d.error||"Upload failed");alert(d.error||"Upload failed");return;}const mediaInput=document.getElementById(target==="broadcast"?"broadcastMedia":"schMedia");if(mediaInput)mediaInput.value=d.file_id||"";if(status)status.textContent="✅ Uploaded • file_id ready";alert("✅ Media uploaded. file_id added automatically.");}catch(e){console.error(e);if(status)status.textContent="❌ Upload failed";alert("Upload failed. Please try again.");}}
 document.addEventListener("DOMContentLoaded",()=>{
