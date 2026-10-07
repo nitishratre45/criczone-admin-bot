@@ -100,7 +100,7 @@ export async function onRequest(context) {
           { inline_keyboard: [
             [{ text: enabled ? "🔕 Turn OFF" : "🔔 Turn ON", callback_data: enabled ? "notify_off" : "notify_on" }],
             [{ text: "🏠 Home", callback_data: "menu" }]
-          ] }
+          ] }, "HTML"
         );
         return new Response("OK");
       }
@@ -195,7 +195,8 @@ export async function onRequest(context) {
           callbackChatId,
           callbackMessageId,
           welcome,
-          await buildMainMenu(env)
+          await buildMainMenu(env),
+          "HTML"
         );
 
         return new Response("OK");
@@ -1407,7 +1408,7 @@ Please follow the group rules.`
         await sendMessage(
           env.BOT_TOKEN,
           chatId,
-          "🏏 Hello! Welcome to CRICZONE 🔥\n\nYour cricket hub is ready.\n👇 Tap Menu to explore."
+          "<b>🏏 HELLO & WELCOME TO CRICZONE</b> 🔥\n\nYour cricket hub is ready.\n\n━━━━━━━━━━━━━━\n👇 <b>Tap Menu to explore</b>"
         );
         return new Response("OK");
       }
