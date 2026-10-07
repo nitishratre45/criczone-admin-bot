@@ -785,6 +785,7 @@ textarea {
   .telegram-preview{max-width:none}
 }
 .vs-live-card{margin-top:16px;padding:16px;border-radius:15px;background:#0b111a;border:1px solid #202b3a;text-align:center}.vs-teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;margin:12px 0;font-size:20px;font-weight:800}.vs-teams b{font-size:13px;color:#21d17c}.vs-meta{color:#9ca8b9;font-size:13px}.vs-status{display:inline-block;margin-top:12px;padding:6px 10px;border-radius:999px;background:#142019;color:#21d17c;font-size:12px}@media(max-width:768px){.vs-teams{font-size:17px;gap:7px}}
+.metric-bars{display:flex;align-items:flex-end;gap:14px;min-height:170px;padding:18px 4px 4px}.metric-bar{flex:1;min-width:42px;text-align:center}.metric-track{height:125px;display:flex;align-items:flex-end;justify-content:center;background:#080e17;border:1px solid #202b3a;border-radius:10px;padding:4px}.metric-fill{width:100%;min-height:4px;border-radius:7px;background:linear-gradient(180deg,#21d17c,#176b47);transition:height .35s ease}.metric-label{margin-top:8px;color:#9ca8b9;font-size:12px}.metric-value{font-weight:800;font-size:13px;margin-top:3px}@media(max-width:768px){.metric-bars{gap:7px}.metric-track{height:100px}.metric-label{font-size:10px}}
 /* ===== CRICZONE PREMIUM ADMIN THEME ===== */
 :root{
   --cz-bg:#05080d;
@@ -1171,9 +1172,9 @@ button:active{transform:translateY(0)}
       <div class="panel dashboard-health">
         <div>
           <div class="card-label">⚡ System</div>
-          <div class="health-main"><span class="health-dot"></span> All admin services ready</div>
+          <div class="health-main" id="healthSummary"><span class="health-dot"></span> Checking services…</div>
         </div>
-        <div class="health-items">
+        <div class="health-items" id="healthItems">
           <span>🤖 Bot Online</span>
           <span>💾 KV Connected</span>
           <span>📢 Broadcast Ready</span>
@@ -1464,7 +1465,7 @@ button:active{transform:translateY(0)}
       </div>
     </section>
 
-    <section id="analytics" style="display:none"><div class="panel"><h2>📈 Analytics Dashboard</h2><div class="v5-grid" id="analyticsCards"></div><div class="panel" style="margin-top:18px"><h3>📊 User Growth</h3><div id="growthStats" class="mini"></div></div><div class="panel" style="margin-top:18px"><h3>🔥 Top Bot Actions</h3><div id="eventUsage" class="mini"></div></div></div></section>
+    <section id="analytics" style="display:none"><div class="panel"><h2>📈 Analytics Dashboard</h2><div class="v5-grid" id="analyticsCards"></div><div class="grid" style="margin-top:16px"><div class="panel"><h3>📊 User Growth</h3><div id="growthChart" class="metric-bars"></div><div id="growthStats" class="mini"></div></div><div class="panel"><h3>📬 Delivery Health</h3><div id="deliveryChart" class="metric-bars"></div></div></div><div class="panel" style="margin-top:18px"><h3>🔥 Top Bot Actions</h3><div id="eventUsage" class="mini"></div></div></div></section>
     <section id="moderation" style="display:none"><div class="panel"><h2>🛡️ Moderation Panel</h2><p class="mini">Enter the group/chat ID and target user ID.</p><div class="grid"><div class="field"><label>Group / Chat ID</label><input id="modChatId" placeholder="-100..."></div><div class="field"><label>User ID</label><input id="modUserId"></div></div><div class="actions"><button class="danger" onclick="moderate('ban')">🚫 Ban</button><button class="secondary" onclick="moderate('unban')">✅ Unban</button><button class="secondary" onclick="moderate('mute')">🔇 Mute</button><button class="secondary" onclick="moderate('unmute')">🔊 Unmute</button><button class="danger" onclick="moderate('kick')">👢 Kick</button><button class="secondary" onclick="moderate('warn')">⚠️ Warn</button></div><div id="modResult" class="result"></div></div></section>
     <section id="activity" style="display:none"><div class="panel"><h2>📝 Activity Logs</h2><button class="secondary" onclick="loadActivity()">🔄 Refresh</button><div style="overflow-x:auto;margin-top:15px"><table class="users-table"><thead><tr><th>Date</th><th>Type</th><th>Action</th></tr></thead><tbody id="activityBody"></tbody></table></div></div></section>
     <!-- SETTINGS -->
@@ -1656,7 +1657,21 @@ async function login() {
 }
 
 
-async function loadDashboard() {
+async function loadHealth(){
+  const summary=document.getElementById("healthSummary"),items=document.getElementById("healthItems");
+  if(!summary||!items)return;
+  try{
+    const d=await adminGet("health");
+    const services=[["Telegram",d.telegram?.status==="online"],["Webhook",d.webhook?.status==="configured"],["KV",d.kv?.status==="online"]];
+    const good=services.every(x=>x[1]);
+    summary.innerHTML='<span class="health-dot" style="background:'+(good?'#21d17c':'#ff6675')+'"></span> '+(good?'All systems operational':'Attention needed');
+    items.innerHTML=services.map(x=>'<span>'+(x[1]?'🟢':'🔴')+' '+escapeHTML(x[0])+'</span>').join('')+(d.webhook?.pending?'<span>⏳ '+Number(d.webhook.pending)+' pending</span>':'');
+  }catch(e){
+    summary.innerHTML='<span class="health-dot" style="background:#ff6675"></span> Health check failed';
+    items.innerHTML='<span>🔴 API unavailable</span>';
+  }
+}
+async function loadDashboard() {loadHealth();
 
   const response =
     await fetch(
@@ -2176,7 +2191,19 @@ function updateVSPreview(){
 }
 async function loadVS(){const d=await adminGet();let m={};try{m=JSON.parse(d.settings.VS_MATCH||"{}")}catch{}vsTeamA.value=m.team_a||"";vsTeamB.value=m.team_b||"";vsDate.value=m.date||"";vsTime.value=m.time||"";vsVenue.value=m.venue||"";vsStatus.value=m.status||"Upcoming";vsLink.value=m.link||d.config.VS_MATCH_LINK||"";updateVSPreview();}
 async function saveVS(){const match={team_a:vsTeamA.value,team_b:vsTeamB.value,date:vsDate.value,time:vsTime.value,venue:vsVenue.value,status:vsStatus.value,link:vsLink.value};const d=await adminPost({action:"save_vs_match",match});vsResult.textContent=d.ok?"✅ VS Match saved!":"❌ Error: "+d.error;updateVSPreview();}
-async function loadAnalytics(){const d=await adminGet("analytics"),g=d.growth||{},p=d.growthPct||{};analyticsCards.innerHTML='<div class="v5-card"><h3>👥 Users</h3><b>'+d.users+'</b><div class="mini">Registered</div></div><div class="v5-card"><h3>🟢 Active</h3><b>'+ (d.active24h||0) +'</b><div class="mini">Active in 24h</div></div><div class="v5-card"><h3>📢 Broadcasts</h3><b>'+d.broadcasts+'</b><div class="mini">Delivery records</div></div><div class="v5-card"><h3>📬 Delivered</h3><b>'+ (d.delivered||0) +'</b><div class="mini">Messages delivered</div></div><div class="v5-card"><h3>🔴 Failed</h3><b>'+ (d.failed||0) +'</b><div class="mini">Delivery failures</div></div>';eventUsage.innerHTML=(d.eventUsage||[]).length?(d.eventUsage||[]).map(x=>escapeHTML(x.name)+" — <b>"+x.count+"</b>").join("<br>"):"No bot actions tracked yet.";growthStats.innerHTML="<b>New users</b><br>Today: "+(g.today||0)+" ("+(p.today||0)+"%) • 7 days: "+(g.last7||0)+" ("+(p.last7||0)+"%) • 30 days: "+(g.last30||0)+" ("+(p.last30||0)+"%)<br><b>Delivery</b><br>"+(d.delivered||0)+" delivered • "+(d.failed||0)+" failed";}
+async function loadAnalytics(){
+  const d=await adminGet("analytics"),g=d.growth||{},p=d.growthPct||{};
+  analyticsCards.innerHTML='<div class="v5-card"><h3>👥 Users</h3><b>'+d.users+'</b><div class="mini">Registered</div></div><div class="v5-card"><h3>🟢 Active</h3><b>'+(d.active24h||0)+'</b><div class="mini">Active in 24h</div></div><div class="v5-card"><h3>📢 Broadcasts</h3><b>'+d.broadcasts+'</b><div class="mini">Delivery records</div></div><div class="v5-card"><h3>📬 Delivered</h3><b>'+(d.delivered||0)+'</b><div class="mini">Messages delivered</div></div><div class="v5-card"><h3>🔴 Failed</h3><b>'+(d.failed||0)+'</b><div class="mini">Delivery failures</div></div>';
+  eventUsage.innerHTML=(d.eventUsage||[]).length?(d.eventUsage||[]).map(x=>escapeHTML(x.name)+' — <b>'+x.count+'</b>').join('<br>'):'No bot actions tracked yet.';
+  growthStats.innerHTML='<b>New users</b><br>Today: '+(g.today||0)+' ('+(p.today||0)+'%) • 7 days: '+(g.last7||0)+' ('+(p.last7||0)+'%) • 30 days: '+(g.last30||0)+' ('+(p.last30||0)+'%)<br><b>Delivery</b><br>'+(d.delivered||0)+' delivered • '+(d.failed||0)+' failed';
+  renderMetricBars('growthChart',['Today','7d','30d'],[g.today||0,g.last7||0,g.last30||0]);
+  renderMetricBars('deliveryChart',['Delivered','Failed'],[d.delivered||0,d.failed||0]);
+}
+function renderMetricBars(id,labels,values){
+  const box=document.getElementById(id);if(!box)return;
+  const max=Math.max(1,...values);
+  box.innerHTML=labels.map((label,i)=>{const value=Number(values[i]||0),height=Math.max(4,(value/max)*100);return '<div class="metric-bar"><div class="metric-track"><div class="metric-fill" style="height:'+height+'%"></div></div><div class="metric-label">'+escapeHTML(label)+'</div><div class="metric-value">'+value+'</div></div>';}).join('');
+}
 function syncUploadType(){const typeEl=document.getElementById("broadcastType");const file=document.getElementById("broadcastMediaFile")?.files?.[0];if(typeEl&&file)typeEl.value=file.type.startsWith("video/")?"video":"photo";}
 async function uploadAdminMedia(){const file=document.getElementById("broadcastMediaFile")?.files?.[0];const typeEl=document.getElementById("broadcastType");const type=(typeEl?.value==="video"||file?.type?.startsWith("video/"))?"video":"photo";const status=document.getElementById("mediaUploadStatus");if(!file){alert("Choose a photo or video first.");return;}const max=type==="photo"?10*1024*1024:50*1024*1024;if(file.size>max){alert((type==="photo"?"Photo":"Video")+" is too large.");return;}if(status)status.textContent="⏳ Uploading "+file.name+"...";const form=new FormData();form.append("action","upload_media");form.append("type",type);form.append("file",file,file.name);try{const r=await fetch("/api/admin",{method:"POST",headers:{"X-Admin-Key":ADMIN_KEY},body:form});const d=await r.json();if(!d.ok){if(status)status.textContent="❌ "+(d.error||"Upload failed");alert(d.error||"Upload failed");return;}const mediaInput=document.getElementById("broadcastMedia");if(mediaInput)mediaInput.value=d.file_id||"";if(status)status.textContent="✅ Uploaded • file_id ready";alert("✅ Media uploaded. file_id added automatically.");}catch(e){console.error(e);if(status)status.textContent="❌ Upload failed";alert("Upload failed. Please try again.");}}
 document.addEventListener("DOMContentLoaded",()=>{
