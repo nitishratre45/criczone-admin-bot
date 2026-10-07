@@ -108,6 +108,27 @@ export async function onRequest(context) {
         return json({ ok: true, users: users.length, broadcasts: broadcasts.length, activity: activity.length, growth, growthPct, active24h, delivered, failed, eventUsage:eventUsage.slice(0,20) }, 200, cors);
       }
 
+      if (view === "notifications") {
+        const readRaw = await env.BOT_KV.get("admin:notifications:read_at");
+        const readAt = Date.parse(readRaw || "") || 0;
+        const keys = await listAllKeys(env.BOT_KV, "activity:");
+        const notifications = [];
+        for (const key of keys.slice(-100).reverse()) {
+          const raw = await env.BOT_KV.get(key.name);
+          try {
+            const item = raw ? JSON.parse(raw) : {};
+            if (item.created_at) {
+              const ts = Date.parse(item.created_at) || 0;
+              notifications.push({
+                ...item,
+                unread: ts > readAt
+              });
+            }
+          } catch {}
+        }
+        return json({ ok:true, notifications:notifications.slice(0,50), unread:notifications.filter(x=>x.unread).length },200,cors);
+      }
+
       if (view === "activity") {
         const keys = await listAllKeys(env.BOT_KV, "activity:");
         const logs = [];
@@ -452,6 +473,11 @@ export async function onRequest(context) {
         }
         await logActivity(env, "moderation", operation + " user " + userId + (operation === "warn" ? " • warnings handled" : ""));
         return json({ ok: true, operation }, 200, cors);
+      }
+
+      if (action === "mark_notifications_read") {
+        await env.BOT_KV.put("admin:notifications:read_at", new Date().toISOString());
+        return json({ok:true},200,cors);
       }
 
       if (action === "activity") {
