@@ -326,6 +326,34 @@ export async function onRequest(context) {
         return json({ok:true,template:t},200,cors);
       }
 
+      if (action === "update_template") {
+        const incoming = body.template || {};
+        const id = String(incoming.id || "").trim();
+        if (!id) return json({ok:false,error:"Template ID is required"},400,cors);
+        const existingRaw = await env.BOT_KV.get("template:" + id);
+        if (!existingRaw) return json({ok:false,error:"Template not found"},404,cors);
+        let existing = {};
+        try { existing = JSON.parse(existingRaw); } catch {}
+        const t = {
+          id,
+          name: String(incoming.name || "").trim().slice(0, 80),
+          type: ["text","photo","video"].includes(String(incoming.type)) ? String(incoming.type) : "text",
+          message: String(incoming.message || "").slice(0, 4000),
+          media: String(incoming.media || "").trim().slice(0, 1000),
+          button_text: String(incoming.button_text || "🏏 Open").slice(0, 80),
+          button_url: String(incoming.button_url || "").trim().slice(0, 2000),
+          category: String(incoming.category || "General").trim().slice(0, 40),
+          favorite: incoming.favorite === true || existing.favorite === true
+        };
+        if (!t.name) return json({ok:false,error:"Template name is required"},400,cors);
+        if (!t.message && t.type === "text") return json({ok:false,error:"Template message is required"},400,cors);
+        if ((t.type === "photo" || t.type === "video") && !t.media) return json({ok:false,error:"Media URL/file_id is required for photo/video"},400,cors);
+        if (t.button_url && !(t.button_url.startsWith("http://") || t.button_url.startsWith("https://"))) return json({ok:false,error:"Button URL must start with http:// or https://"},400,cors);
+        await env.BOT_KV.put("template:" + id, JSON.stringify(t));
+        await logActivity(env, "template", "Broadcast template updated: " + t.name);
+        return json({ok:true,template:t},200,cors);
+      }
+
       if (action === "duplicate_template") {
         const id = String(body.id || "").trim();
         const raw = id ? await env.BOT_KV.get("template:" + id) : null;
