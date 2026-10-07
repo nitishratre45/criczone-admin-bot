@@ -784,7 +784,148 @@ textarea {
   .health-items{justify-content:flex-start;margin-top:12px}
   .telegram-preview{max-width:none}
 }
-.vs-live-card{margin-top:16px;padding:16px;border-radius:15px;background:#0b111a;border:1px solid #202b3a;text-align:center}.vs-teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;margin:12px 0;font-size:20px;font-weight:800}.vs-teams b{font-size:13px;color:#21d17c}.vs-meta{color:#9ca8b9;font-size:13px}.vs-status{display:inline-block;margin-top:12px;padding:6px 10px;border-radius:999px;background:#142019;color:#21d17c;font-size:12px}@media(max-width:768px){.vs-teams{font-size:17px;gap:7px}}</style>
+.vs-live-card{margin-top:16px;padding:16px;border-radius:15px;background:#0b111a;border:1px solid #202b3a;text-align:center}.vs-teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;margin:12px 0;font-size:20px;font-weight:800}.vs-teams b{font-size:13px;color:#21d17c}.vs-meta{color:#9ca8b9;font-size:13px}.vs-status{display:inline-block;margin-top:12px;padding:6px 10px;border-radius:999px;background:#142019;color:#21d17c;font-size:12px}@media(max-width:768px){.vs-teams{font-size:17px;gap:7px}}
+/* ===== CRICZONE PREMIUM ADMIN THEME ===== */
+:root{
+  --cz-bg:#05080d;
+  --cz-panel:#0c121b;
+  --cz-panel-2:#101925;
+  --cz-border:#1e2a39;
+  --cz-text:#f4f7fb;
+  --cz-muted:#8794a6;
+  --cz-green:#21d17c;
+  --cz-green-soft:#123524;
+  --cz-red:#ff6675;
+  --cz-blue:#5da9ff;
+}
+body{
+  background:
+    radial-gradient(circle at 15% 0%,rgba(33,209,124,.08),transparent 28%),
+    radial-gradient(circle at 90% 10%,rgba(93,169,255,.07),transparent 24%),
+    var(--cz-bg);
+}
+.sidebar{
+  background:rgba(7,12,19,.92);
+  backdrop-filter:blur(18px);
+  box-shadow:12px 0 40px rgba(0,0,0,.18);
+}
+.brand{
+  letter-spacing:-.04em;
+  font-size:26px;
+}
+.nav button{
+  border:1px solid transparent;
+  transition:all .18s ease;
+}
+.nav button:hover{
+  transform:translateX(2px);
+}
+.nav button.active{
+  border-color:rgba(33,209,124,.16);
+  box-shadow:inset 3px 0 0 var(--cz-green),0 8px 24px rgba(0,0,0,.12);
+}
+.main{padding-top:26px}
+.title{
+  letter-spacing:-.035em;
+  text-shadow:0 8px 30px rgba(0,0,0,.25);
+}
+.status{
+  border:1px solid rgba(33,209,124,.18);
+  box-shadow:0 8px 30px rgba(33,209,124,.06);
+}
+.dot{box-shadow:0 0 14px rgba(33,209,124,.8)}
+.card,.panel{
+  background:linear-gradient(145deg,rgba(16,23,34,.98),rgba(10,16,25,.98));
+  border-color:var(--cz-border);
+  box-shadow:0 14px 45px rgba(0,0,0,.12);
+}
+.card{
+  position:relative;
+  overflow:hidden;
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+.card::after{
+  content:"";
+  position:absolute;
+  width:90px;height:90px;
+  right:-35px;top:-40px;
+  background:rgba(33,209,124,.07);
+  border-radius:50%;
+}
+.card:hover{
+  transform:translateY(-2px);
+  border-color:#2b3b50;
+  box-shadow:0 18px 50px rgba(0,0,0,.2);
+}
+.card-value{letter-spacing:-.04em}
+.panel h2{letter-spacing:-.02em}
+input,textarea,select{
+  background:#080e17;
+  border-color:#273548;
+  transition:border-color .16s ease,box-shadow .16s ease,background .16s ease;
+}
+input:hover,textarea:hover,select:hover{border-color:#34465d}
+input:focus,textarea:focus,select:focus{
+  border-color:var(--cz-green);
+  box-shadow:0 0 0 3px rgba(33,209,124,.08);
+  background:#09111c;
+}
+button{
+  transition:transform .16s ease,filter .16s ease,box-shadow .16s ease;
+}
+button:hover{
+  filter:brightness(1.08);
+  transform:translateY(-1px);
+}
+button:active{transform:translateY(0)}
+.save{
+  box-shadow:0 8px 24px rgba(33,209,124,.12);
+}
+.secondary{border:1px solid #2a394d}
+.danger{
+  border:1px solid rgba(255,102,117,.14);
+}
+.result{
+  padding:10px 12px;
+  border-radius:10px;
+  background:rgba(33,209,124,.055);
+  border:1px solid rgba(33,209,124,.1);
+}
+.v5-card{
+  background:linear-gradient(145deg,#0c131d,#091019);
+  border-color:#202d3e;
+  box-shadow:0 10px 30px rgba(0,0,0,.12);
+}
+.v5-card b{letter-spacing:-.02em}
+.users-table th{
+  background:#0b121c;
+  position:sticky;
+  top:0;
+  z-index:1;
+}
+.users-table tr:hover td{background:rgba(33,209,124,.025)}
+.telegram-preview{
+  box-shadow:0 12px 35px rgba(0,0,0,.18);
+  background:linear-gradient(160deg,#0a111a,#071018);
+}
+.preview-button{
+  border:1px solid rgba(33,209,124,.15);
+  box-shadow:0 6px 20px rgba(33,209,124,.06);
+}
+.dashboard-health{
+  background:linear-gradient(135deg,rgba(33,209,124,.045),rgba(93,169,255,.025));
+}
+.health-items span{
+  backdrop-filter:blur(8px);
+}
+@media(max-width:768px){
+  .main{padding-top:14px}
+  .card:hover{transform:none}
+  .nav button:hover{transform:none}
+  .panel{box-shadow:0 10px 30px rgba(0,0,0,.16)}
+}
+
+</style>
 
 </head>
 
