@@ -445,6 +445,8 @@ textarea {
   font-size: 12px;
 }
 
+
+.v5-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.v5-card{background:#0b111a;border:1px solid #202b3a;border-radius:14px;padding:16px}.v5-card h3{margin:0 0 10px}.menu-row{display:grid;grid-template-columns:1fr 1fr 90px 90px;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #202b3a}@media(max-width:900px){.v5-grid{grid-template-columns:1fr}.menu-row{grid-template-columns:1fr 1fr}}
 </style>
 
 </head>
@@ -544,6 +546,12 @@ textarea {
       >
         ⚙️ Settings
       </button>
+      <button onclick="showSection('menu')">🧭 Menu Editor</button>
+      <button onclick="showSection('vs')">⚔️ VS Match</button>
+      <button onclick="showSection('analytics')">📈 Analytics</button>
+      <button onclick="showSection('schedule')">⏰ Scheduled Broadcast</button>
+      <button onclick="showSection('moderation')">🛡️ Moderation</button>
+      <button onclick="showSection('activity')">📝 Activity Logs</button>
 
       <button
         onclick="showSection('bot')"
@@ -788,6 +796,12 @@ textarea {
           id="broadcastMessage"
           placeholder="Write your announcement..."
         ></textarea>
+        <div class="grid" style="margin-top:14px">
+          <div class="field"><label>Type</label><select id="broadcastType" style="width:100%;background:#0a1019;color:#fff;border:1px solid #293545;border-radius:12px;padding:13px"><option value="text">📝 Text</option><option value="photo">🖼️ Photo</option><option value="video">🎬 Video</option></select></div>
+          <div class="field"><label>Media URL / Telegram file_id</label><input id="broadcastMedia" placeholder="Required for photo/video"></div>
+          <div class="field"><label>Button URL</label><input id="broadcastButtonUrl" placeholder="https://..."></div>
+          <div class="field"><label>Button Text</label><input id="broadcastButtonText" value="🏏 Open"></div>
+        </div>
 
         <div class="actions">
 
@@ -888,6 +902,14 @@ textarea {
     </section>
 
 
+    <section id="menu" style="display:none"><div class="panel"><h2>🧭 Menu Editor</h2><p class="mini">Edit labels, order and visibility.</p><div id="menuRows"></div><div class="actions"><button class="save" onclick="saveMenu()">💾 Save Menu</button><button class="secondary" onclick="loadMenu()">🔄 Reload</button></div><div id="menuResult" class="result"></div></div></section>
+    <section id="vs" style="display:none"><div class="panel"><h2>⚔️ VS Match Manager</h2><div class="grid">
+      <div class="field"><label>Team A</label><input id="vsTeamA"></div><div class="field"><label>Team B</label><input id="vsTeamB"></div><div class="field"><label>Date</label><input id="vsDate"></div><div class="field"><label>Time</label><input id="vsTime"></div><div class="field"><label>Venue</label><input id="vsVenue"></div><div class="field"><label>Status</label><input id="vsStatus" value="Upcoming"></div><div class="field"><label>Match Link</label><input id="vsLink"></div>
+    </div><div class="actions"><button class="save" onclick="saveVS()">💾 Save VS Match</button></div><div id="vsResult" class="result"></div></div></section>
+    <section id="analytics" style="display:none"><div class="panel"><h2>📈 Analytics Dashboard</h2><div class="v5-grid" id="analyticsCards"></div><div class="panel" style="margin-top:18px"><h3>📊 User Growth</h3><div id="growthStats" class="mini"></div></div></div></section>
+    <section id="schedule" style="display:none"><div class="panel"><h2>⏰ Scheduled Broadcast</h2><p class="mini">Schedules are stored in KV for execution by a cron/Worker trigger.</p><div class="grid"><div class="field"><label>Run At (ISO)</label><input id="schRunAt" placeholder="2026-10-14T18:30:00+05:30"></div><div class="field"><label>Type</label><select id="schType" style="width:100%;background:#0a1019;color:#fff;border:1px solid #293545;border-radius:12px;padding:13px"><option value="text">Text</option><option value="photo">Photo</option><option value="video">Video</option></select></div></div><textarea id="schMessage" placeholder="Scheduled message..."></textarea><div class="grid" style="margin-top:12px"><div class="field"><label>Button Text</label><input id="schButtonText" value="🏏 Open"></div><div class="field"><label>Button URL</label><input id="schButtonUrl"></div></div><div class="actions"><button class="save" onclick="saveSchedule()">💾 Save Schedule</button><button class="secondary" onclick="loadSchedules()">🔄 Refresh</button></div><div id="scheduleResult" class="result"></div><div id="scheduleList"></div></div></section>
+    <section id="moderation" style="display:none"><div class="panel"><h2>🛡️ Moderation Panel</h2><p class="mini">Enter the group/chat ID and target user ID.</p><div class="grid"><div class="field"><label>Group / Chat ID</label><input id="modChatId" placeholder="-100..."></div><div class="field"><label>User ID</label><input id="modUserId"></div></div><div class="actions"><button class="danger" onclick="moderate('ban')">🚫 Ban</button><button class="secondary" onclick="moderate('unban')">✅ Unban</button><button class="secondary" onclick="moderate('mute')">🔇 Mute</button><button class="secondary" onclick="moderate('unmute')">🔊 Unmute</button><button class="danger" onclick="moderate('kick')">👢 Kick</button><button class="secondary" onclick="moderate('warn')">⚠️ Warn</button></div><div id="modResult" class="result"></div></div></section>
+    <section id="activity" style="display:none"><div class="panel"><h2>📝 Activity Logs</h2><button class="secondary" onclick="loadActivity()">🔄 Refresh</button><div style="overflow-x:auto;margin-top:15px"><table class="users-table"><thead><tr><th>Date</th><th>Type</th><th>Action</th></tr></thead><tbody id="activityBody"></tbody></table></div></div></section>
     <!-- SETTINGS -->
 
     <section
@@ -1263,122 +1285,26 @@ async function resetLinks() {
 
 
 async function broadcast() {
-
-  const message =
-    document
-      .getElementById(
-        "broadcastMessage"
-      )
-      .value
-      .trim();
-
-  if (!message) {
-    alert(
-      "Write a message first."
-    );
-    return;
-  }
-
-  if (
-    !confirm(
-      "Send this broadcast to all registered users?"
-    )
-  ) {
-    return;
-  }
-
-  const response =
-    await fetch(
-      "/api/admin",
-      {
-        method: "POST",
-
-        headers: {
-          "Content-Type":
-            "application/json",
-
-          "X-Admin-Key":
-            ADMIN_KEY
-        },
-
-        body:
-          JSON.stringify({
-            action:
-              "broadcast",
-
-            message
-          })
-      }
-    );
-
-  const data =
-    await response.json();
-
-  if (data.ok) {
-
-    document
-      .getElementById(
-        "broadcastResult"
-      )
-      .textContent =
-        `✅ Sent: ${data.sent} | Failed: ${data.failed} | Total: ${data.total}`;
-
-    document
-      .getElementById(
-        "broadcastMessage"
-      )
-      .value = "";
-
-  } else {
-
-    document
-      .getElementById(
-        "broadcastResult"
-      )
-      .textContent =
-        "❌ " + data.error;
-  }
+  const message=document.getElementById("broadcastMessage").value.trim();
+  const type=document.getElementById("broadcastType").value;
+  const media=document.getElementById("broadcastMedia").value.trim();
+  const button_url=document.getElementById("broadcastButtonUrl").value.trim();
+  const button_text=document.getElementById("broadcastButtonText").value.trim();
+  if(!message && type==="text"){alert("Write a message first.");return;}
+  if((type==="photo"||type==="video")&&!media){alert("Media URL/file_id required.");return;}
+  if(!confirm("Send this broadcast to all registered users?"))return;
+  const response=await fetch("/api/admin",{method:"POST",headers:{"Content-Type":"application/json","X-Admin-Key":ADMIN_KEY},body:JSON.stringify({action:"broadcast",type,message,media,button_url,button_text})});
+  const data=await response.json();
+  document.getElementById("broadcastResult").textContent=data.ok?"Sent: "+data.sent+" | Failed: "+data.failed+" | Total: "+data.total:"Error: "+data.error;
+  if(data.ok)document.getElementById("broadcastMessage").value="";
 }
-
 
 function showSection(id) {
-
-  const sections = [
-    "dashboard",
-    "links",
-    "broadcast",
-    "users",
-    "history",
-    "settings",
-    "bot"
-  ];
-
-  sections.forEach(
-    section => {
-
-      document
-        .getElementById(section)
-        .style.display =
-          section === id
-            ? "block"
-            : "none";
-
-    }
-  );
-
-  document
-    .querySelectorAll(".nav button")
-    .forEach(
-      button =>
-        button.classList.remove(
-          "active"
-        )
-    );
-  
-  if (id === "users") loadUsers();
-  if (id === "history") loadHistory();
+  const sections=["dashboard","links","broadcast","users","history","settings","bot","menu","vs","analytics","schedule","moderation","activity"];
+  sections.forEach(section=>{const el=document.getElementById(section);if(el)el.style.display=section===id?"block":"none";});
+  document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
+  if(id==="users")loadUsers();if(id==="history")loadHistory();if(id==="menu")loadMenu();if(id==="vs")loadVS();if(id==="analytics")loadAnalytics();if(id==="schedule")loadSchedules();if(id==="activity")loadActivity();
 }
-
 
 
 async function loadUsers() {
@@ -1605,6 +1531,18 @@ if (ADMIN_KEY) {
   loadDashboard();
 }
 
+
+async function adminGet(view){const r=await fetch(view?"/api/admin?view="+encodeURIComponent(view):"/api/admin",{headers:{"X-Admin-Key":ADMIN_KEY}});if(!r.ok){logout();throw new Error("Unauthorized")}return r.json();}
+async function adminPost(body){const r=await fetch("/api/admin",{method:"POST",headers:{"Content-Type":"application/json","X-Admin-Key":ADMIN_KEY},body:JSON.stringify(body)});return r.json();}
+async function loadMenu(){const d=await adminGet();let m=[];try{m=JSON.parse(d.settings.MENU_CONFIG||"[]")}catch{}if(!m.length)m=[["🏏 HUB","GROUP_LINK"],["📢 Main","MAIN_CHANNEL_LINK"],["🔄 Backup","BACKUP_CHANNEL_LINK"],["⚔️ VS Match","VS_MATCH_LINK"],["🔴 Live","LIVE_LINK"],["📊 Score","SCORE_LINK"],["📅 Schedule","SCHEDULE_LINK"],["📺 Stream","STREAM_LINK"],["🔗 All Links","ALL_LINKS"],["📜 Rules","RULES"],["ℹ️ About","ABOUT"],["👨‍💻 Admin","ADMIN_LINK"]].map((x,i)=>({label:x[0],key:x[1],visible:true,order:i}));const b=document.getElementById("menuRows");b.innerHTML="";m.forEach((x,i)=>{const r=document.createElement("div");r.className="menu-row";r.innerHTML='<input class="mlabel" value="'+escapeHTML(x.label)+'"><input class="mkey" value="'+escapeHTML(x.key)+'"><input class="morder" type="number" value="'+Number(x.order||i)+'"><label><input class="mvis" type="checkbox" '+(x.visible!==false?"checked":"")+'> Visible</label>';b.appendChild(r);});}
+async function saveMenu(){const menu=[...document.querySelectorAll(".menu-row")].map((r,i)=>({label:r.querySelector(".mlabel").value,key:r.querySelector(".mkey").value,order:Number(r.querySelector(".morder").value||i),visible:r.querySelector(".mvis").checked}));const d=await adminPost({action:"save_menu",menu});document.getElementById("menuResult").textContent=d.ok?"Menu saved successfully!":"Error: "+d.error;}
+async function loadVS(){const d=await adminGet();let m={};try{m=JSON.parse(d.settings.VS_MATCH||"{}")}catch{}vsTeamA.value=m.team_a||"";vsTeamB.value=m.team_b||"";vsDate.value=m.date||"";vsTime.value=m.time||"";vsVenue.value=m.venue||"";vsStatus.value=m.status||"Upcoming";vsLink.value=m.link||d.config.VS_MATCH_LINK||"";}
+async function saveVS(){const match={team_a:vsTeamA.value,team_b:vsTeamB.value,date:vsDate.value,time:vsTime.value,venue:vsVenue.value,status:vsStatus.value,link:vsLink.value};const d=await adminPost({action:"save_vs_match",match});vsResult.textContent=d.ok?"VS Match saved!":"Error: "+d.error;}
+async function loadAnalytics(){const d=await adminGet("analytics"),g=d.growth||{};analyticsCards.innerHTML='<div class="v5-card"><h3>👥 Users</h3><b>'+d.users+'</b></div><div class="v5-card"><h3>📢 Broadcasts</h3><b>'+d.broadcasts+'</b></div><div class="v5-card"><h3>📝 Activity</h3><b>'+d.activity+'</b></div>';growthStats.textContent="Today: "+(g.today||0)+" • 7 days: "+(g.last7||0)+" • 30 days: "+(g.last30||0);}
+async function saveSchedule(){const schedule={run_at:schRunAt.value,type:schType.value,message:schMessage.value,button_text:schButtonText.value,button_url:schButtonUrl.value,enabled:true};const d=await adminPost({action:"save_schedule",schedule});scheduleResult.textContent=d.ok?"Schedule saved!":"Error: "+d.error;loadSchedules();}
+async function loadSchedules(){const d=await adminGet();scheduleList.innerHTML='<div class="mini">📅 '+(d.schedules||0)+' saved schedule(s).</div>';}
+async function moderate(operation){const d=await adminPost({action:"moderate",chat_id:modChatId.value,user_id:modUserId.value,operation});modResult.textContent=d.ok?operation+" completed!":"Error: "+d.error;}
+async function loadActivity(){const d=await adminGet("activity"),b=activityBody;b.innerHTML="";(d.logs||[]).forEach(x=>{const r=document.createElement("tr");r.innerHTML="<td>"+escapeHTML(x.created_at?new Date(x.created_at).toLocaleString():"—")+"</td><td>"+escapeHTML(x.type||"")+"</td><td>"+escapeHTML(x.message||"")+"</td>";b.appendChild(r);});}
 </script>
 
 </body>
