@@ -53,6 +53,204 @@ export async function onRequest(context) {
     }
 
     // ==================================================
+    // INLINE MENU / CALLBACK NAVIGATION
+    // ==================================================
+
+    if (update.callback_query) {
+      const query = update.callback_query;
+      const callbackChatId = query.message?.chat?.id;
+      const callbackMessageId = query.message?.message_id;
+      const data = query.data || "";
+
+      await answerCallbackQuery(env.BOT_TOKEN, query.id);
+
+      if (!callbackChatId || !callbackMessageId) {
+        return new Response("OK");
+      }
+
+      if (data === "menu") {
+        const welcome = await getBotSetting(
+          env.BOT_KV,
+          "WELCOME_MESSAGE",
+          "🏏 Welcome to CRICZONE!\n\nChoose an option below 👇"
+        );
+
+        await editMessageText(
+          env.BOT_TOKEN,
+          callbackChatId,
+          callbackMessageId,
+          welcome,
+          await buildMainMenu(env)
+        );
+
+        return new Response("OK");
+      }
+
+      if (data.startsWith("open:")) {
+        const key = data.slice(5);
+
+        const labels = {
+          GROUP_LINK: "🏏 CRICZONE HUB",
+          MAIN_CHANNEL_LINK: "📢 Main Channel",
+          BACKUP_CHANNEL_LINK: "🔄 Backup Channel",
+          VS_MATCH_LINK: "⚔️ VS MATCH",
+          LIVE_LINK: "🔴 Live Match",
+          SCORE_LINK: "📊 Live Score",
+          SCHEDULE_LINK: "📅 Match Schedule",
+          STREAM_LINK: "📺 Stream",
+          ADMIN_LINK: "👨‍💻 Contact Admin"
+        };
+
+        const titles = {
+          GROUP_LINK: "🏏 CRICZONE HUB",
+          MAIN_CHANNEL_LINK: "📢 CRICZONE MAIN CHANNEL",
+          BACKUP_CHANNEL_LINK: "🔄 CRICZONE BACKUP CHANNEL",
+          VS_MATCH_LINK: "⚔️ VS MATCH",
+          LIVE_LINK: "🔴 LIVE MATCH",
+          SCORE_LINK: "📊 LIVE SCORE",
+          SCHEDULE_LINK: "📅 MATCH SCHEDULE",
+          STREAM_LINK: "📺 STREAMING LINK",
+          ADMIN_LINK: "👨‍💻 CONTACT CRICZONE ADMIN"
+        };
+
+        const fallback =
+          env[key] || "";
+
+        const link = await getLink(
+          key,
+          fallback
+        );
+
+        if (link) {
+          await editMessageText(
+            env.BOT_TOKEN,
+            callbackChatId,
+            callbackMessageId,
+            `${titles[key] || "CRICZONE"} 👇`,
+            {
+              inline_keyboard: [
+                [
+                  {
+                    text: labels[key] || "🔗 Open",
+                    url: link
+                  }
+                ],
+                [
+                  {
+                    text: "⬅️ Back",
+                    callback_data: "menu"
+                  }
+                ]
+              ]
+            }
+          );
+        } else {
+          await editMessageText(
+            env.BOT_TOKEN,
+            callbackChatId,
+            callbackMessageId,
+            "⚠️ This link is not configured yet.",
+            {
+              inline_keyboard: [
+                [
+                  {
+                    text: "⬅️ Back",
+                    callback_data: "menu"
+                  }
+                ]
+              ]
+            }
+          );
+        }
+
+        return new Response("OK");
+      }
+
+      if (data === "all_links") {
+        const buttons = [];
+        const all = [
+          ["🏏 CRICZONE HUB", "GROUP_LINK"],
+          ["📢 Main Channel", "MAIN_CHANNEL_LINK"],
+          ["🔄 Backup Channel", "BACKUP_CHANNEL_LINK"],
+          ["⚔️ VS MATCH", "VS_MATCH_LINK"],
+          ["🔴 Live", "LIVE_LINK"],
+          ["📊 Score", "SCORE_LINK"],
+          ["📅 Schedule", "SCHEDULE_LINK"],
+          ["📺 Stream", "STREAM_LINK"]
+        ];
+
+        for (const [label, key] of all) {
+          const link = await getLink(env, key, env[key]);
+          if (link) {
+            buttons.push([
+              { text: label, callback_data: "open:" + key }
+            ]);
+          }
+        }
+
+        buttons.push([
+          { text: "⬅️ Back", callback_data: "menu" }
+        ]);
+
+        await editMessageText(
+          env.BOT_TOKEN,
+          callbackChatId,
+          callbackMessageId,
+          "🔗 CRICZONE IMPORTANT LINKS 👇",
+          { inline_keyboard: buttons }
+        );
+
+        return new Response("OK");
+      }
+
+      if (data === "rules") {
+        const rules = await getBotSetting(
+          env.BOT_KV,
+          "RULES_MESSAGE",
+          "📜 CRICZONE RULES"
+        );
+
+        await editMessageText(
+          env.BOT_TOKEN,
+          callbackChatId,
+          callbackMessageId,
+          rules,
+          {
+            inline_keyboard: [
+              [{ text: "⬅️ Back", callback_data: "menu" }]
+            ]
+          }
+        );
+
+        return new Response("OK");
+      }
+
+      if (data === "about") {
+        const about = await getBotSetting(
+          env.BOT_KV,
+          "ABOUT_MESSAGE",
+          "🏏 CRICZONE"
+        );
+
+        await editMessageText(
+          env.BOT_TOKEN,
+          callbackChatId,
+          callbackMessageId,
+          about,
+          {
+            inline_keyboard: [
+              [{ text: "⬅️ Back", callback_data: "menu" }]
+            ]
+          }
+        );
+
+        return new Response("OK");
+      }
+
+      return new Response("OK");
+    }
+
+    // ==================================================
     // MESSAGE CHECK
     // ==================================================
 
@@ -160,7 +358,8 @@ export async function onRequest(context) {
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
-        welcome
+        welcome,
+        await buildMainMenu(env)
       );
 
       return new Response("OK");
@@ -171,45 +370,11 @@ export async function onRequest(context) {
     // ==================================================
 
     if (command === "/help") {
-
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
-        `🤖 CRICZONE BOT
-
-🏏 GENERAL
-/start
-/help
-/menu
-/ping
-/stats
-/rules
-/about
-/id
-/info
-
-🔗 LINKS
-/channel
-/backup
-/live
-/score
-/schedule
-/stream
-/links
-/admin
-
-🛡️ MODERATION
-/warn
-/warnings
-/ban
-/unban
-/mute
-/unmute
-/kick
-/del
-
-━━━━━━━━━━━━━━━━━━
-⚠️ Moderation commands are for group admins only.`
+        "🏏 CRICZONE MENU\n\nChoose an option below 👇",
+        await buildMainMenu(env)
       );
 
       return new Response("OK");
@@ -261,21 +426,8 @@ export async function onRequest(context) {
     // DASHBOARD VALUE > CLOUDFLARE VARIABLE
     // ==================================================
 
-    const getLink = async (key, fallback) => {
+    // Link helper is declared below as a function so callbacks can use it.
 
-      if (!env.BOT_KV) {
-        return fallback || "";
-      }
-
-      try {
-        const value =
-          await env.BOT_KV.get(`config:${key}`);
-
-        return value || fallback || "";
-      } catch {
-        return fallback || "";
-      }
-    };
 
     // ==================================================
     // CHANNEL
@@ -664,24 +816,11 @@ ${user.id || "N/A"}`
     }
 
     if (command === "/menu") {
-      const group = await getLink("GROUP_LINK", env.GROUP_LINK);
-      const main = await getLink("MAIN_CHANNEL_LINK", env.MAIN_CHANNEL_LINK);
-      const live = await getLink("LIVE_LINK", env.LIVE_LINK);
-      const score = await getLink("SCORE_LINK", env.SCORE_LINK);
-      const schedule = await getLink("SCHEDULE_LINK", env.SCHEDULE_LINK);
-
-      const buttons = [];
-      addButton(buttons, "🏏 CRICZONE HUB", group);
-      addButton(buttons, "📢 Main Channel", main);
-      addButton(buttons, "🔴 Live", live);
-      addButton(buttons, "📊 Score", score);
-      addButton(buttons, "📅 Schedule", schedule);
-
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
         "🏏 CRICZONE MENU\n\nChoose an option below 👇",
-        { inline_keyboard: buttons }
+        await buildMainMenu(env)
       );
 
       return new Response("OK");
@@ -1127,6 +1266,85 @@ Please follow the group rules.`
   }
 }
 
+
+// ==================================================
+// MAIN INLINE MENU
+// ==================================================
+
+async function buildMainMenu(env) {
+  const items = [
+    ["🏏 CRICZONE HUB", "GROUP_LINK"],
+    ["📢 Main Channel", "MAIN_CHANNEL_LINK"],
+    ["🔄 Backup Channel", "BACKUP_CHANNEL_LINK"],
+    ["⚔️ VS MATCH", "VS_MATCH_LINK"],
+    ["🔴 Live Match", "LIVE_LINK"],
+    ["📊 Live Score", "SCORE_LINK"],
+    ["📅 Match Schedule", "SCHEDULE_LINK"],
+    ["📺 Stream", "STREAM_LINK"],
+    ["🔗 All Links", "ALL_LINKS"],
+    ["📜 Rules", "RULES"],
+    ["ℹ️ About", "ABOUT"],
+    ["👨‍💻 Contact Admin", "ADMIN_LINK"]
+  ];
+
+  const rows = [];
+
+  for (const [label, key] of items) {
+    if (key === "ALL_LINKS" || key === "RULES" || key === "ABOUT") {
+      rows.push([
+        {
+          text: label,
+          callback_data:
+            key === "ALL_LINKS"
+              ? "all_links"
+              : key === "RULES"
+                ? "rules"
+                : "about"
+        }
+      ]);
+      continue;
+    }
+
+    const link = await getLink(env, key, env[key]);
+    if (link) {
+      rows.push([
+        {
+          text: label,
+          callback_data: "open:" + key
+        }
+      ]);
+    }
+  }
+
+  return { inline_keyboard: rows };
+}
+
+async function getLink(env, key, fallback) {
+  if (!env.BOT_KV) return fallback || "";
+
+  try {
+    return (await env.BOT_KV.get("config:" + key)) ||
+      fallback ||
+      "";
+  } catch {
+    return fallback || "";
+  }
+}
+
+async function editMessageText(token, chatId, messageId, text, replyMarkup) {
+  return telegramMethod(token, "editMessageText", {
+    chat_id: chatId,
+    message_id: messageId,
+    text,
+    reply_markup: replyMarkup
+  });
+}
+
+async function answerCallbackQuery(token, callbackQueryId) {
+  return telegramMethod(token, "answerCallbackQuery", {
+    callback_query_id: callbackQueryId
+  });
+}
 
 // ==================================================
 // SEND MESSAGE
