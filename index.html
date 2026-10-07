@@ -786,6 +786,7 @@ textarea {
 }
 .vs-live-card{margin-top:16px;padding:16px;border-radius:15px;background:#0b111a;border:1px solid #202b3a;text-align:center}.vs-teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;margin:12px 0;font-size:20px;font-weight:800}.vs-teams b{font-size:13px;color:#21d17c}.vs-meta{color:#9ca8b9;font-size:13px}.vs-status{display:inline-block;margin-top:12px;padding:6px 10px;border-radius:999px;background:#142019;color:#21d17c;font-size:12px}@media(max-width:768px){.vs-teams{font-size:17px;gap:7px}}
 .metric-bars{display:flex;align-items:flex-end;gap:14px;min-height:170px;padding:18px 4px 4px}.metric-bar{flex:1;min-width:42px;text-align:center}.metric-track{height:125px;display:flex;align-items:flex-end;justify-content:center;background:#080e17;border:1px solid #202b3a;border-radius:10px;padding:4px}.metric-fill{width:100%;min-height:4px;border-radius:7px;background:linear-gradient(180deg,#21d17c,#176b47);transition:height .35s ease}.metric-label{margin-top:8px;color:#9ca8b9;font-size:12px}.metric-value{font-weight:800;font-size:13px;margin-top:3px}@media(max-width:768px){.metric-bars{gap:7px}.metric-track{height:100px}.metric-label{font-size:10px}}
+.notification-item{display:flex;gap:12px;padding:13px 14px;border:1px solid #202b3a;background:#0b111a;border-radius:12px;margin-top:9px}.notification-item.unread{border-color:rgba(33,209,124,.25);box-shadow:inset 3px 0 0 #21d17c}.notification-icon{font-size:20px;line-height:1}.notification-main{min-width:0;flex:1}.notification-type{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#21d17c;font-weight:800}.notification-message{margin-top:3px;word-break:break-word}.notification-time{margin-top:5px;color:#718096;font-size:11px}@media(max-width:768px){.notification-item{padding:11px}}
 /* ===== CRICZONE PREMIUM ADMIN THEME ===== */
 :root{
   --cz-bg:#05080d;
@@ -1031,6 +1032,7 @@ button:active{transform:translateY(0)}
       <button onclick="showSection('analytics')">📈 Analytics</button>
       <button onclick="showSection('moderation')">🛡️ Moderation</button>
       <button onclick="showSection('activity')">📝 Activity Logs</button>
+      <button onclick="showSection('notifications')">🔔 Notifications <span id="notificationBadge" style="display:none;margin-left:5px;padding:2px 6px;border-radius:999px;background:#ff6675;color:#fff;font-size:10px">0</span></button>
 
       <button
         onclick="showSection('bot')"
@@ -1518,6 +1520,19 @@ button:active{transform:translateY(0)}
 
     </section>
 
+    <section id="notifications" style="display:none">
+      <div class="panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div>
+            <h2>🔔 Notification Center</h2>
+            <div class="mini">Important admin activity, broadcast results and bot changes.</div>
+          </div>
+          <button class="secondary" onclick="markNotificationsRead()">✓ Mark all read</button>
+        </div>
+        <div id="notificationList" style="margin-top:16px"></div>
+      </div>
+    </section>
+
     <!-- BOT -->
 
     <section
@@ -1671,7 +1686,7 @@ async function loadHealth(){
     items.innerHTML='<span>🔴 API unavailable</span>';
   }
 }
-async function loadDashboard() {loadHealth();
+async function loadDashboard() {loadNotifications();loadHealth();
 
   const response =
     await fetch(
@@ -1917,7 +1932,7 @@ function showSection(id) {
   document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
   const activeBtn=[...document.querySelectorAll(".nav button")].find(b=>String(b.getAttribute("onclick")||"").includes("showSection('"+id+"')"));
   if(activeBtn)activeBtn.classList.add("active");
-  if(id==="dashboard")loadDashboard();if(id==="users")loadUsers();if(id==="history")loadHistory();if(id==="menu")loadMenu();if(id==="vs")loadVS();if(id==="livecenter")loadLiveMatch();if(id==="analytics")loadAnalytics();if(id==="templates")loadTemplates();if(id==="activity")loadActivity();if(id==="moderation")loadModerationStats();
+  if(id==="dashboard")loadDashboard();if(id==="users")loadUsers();if(id==="history")loadHistory();if(id==="menu")loadMenu();if(id==="vs")loadVS();if(id==="livecenter")loadLiveMatch();if(id==="analytics")loadAnalytics();if(id==="templates")loadTemplates();if(id==="notifications")loadNotifications();if(id==="activity")loadActivity();if(id==="moderation")loadModerationStats();
 }
 async function refreshCurrentSection(){
   const current=document.querySelector("section[style*='display: block']");
@@ -2172,6 +2187,22 @@ document.getElementById("adminKey")?.addEventListener("keydown",e=>{
 });
 
 
+async function loadNotifications(){
+  const box=document.getElementById("notificationList"),badge=document.getElementById("notificationBadge");
+  if(!box)return;
+  try{
+    const d=await adminGet("notifications"),list=d.notifications||[];
+    if(badge){badge.textContent=String(d.unread||0);badge.style.display=d.unread?"inline-block":"none";}
+    box.innerHTML=list.length?list.map(x=>{
+      const icon=x.type==="broadcast"?"📢":x.type==="moderation"?"🛡️":x.type==="media"?"📤":x.type==="template"?"🧩":x.type==="settings"?"⚙️":x.type==="user"?"👤":"📝";
+      return '<div class="notification-item '+(x.unread?"unread":"")+'"><div class="notification-icon">'+icon+'</div><div class="notification-main"><div class="notification-type">'+escapeHTML(x.type||"activity")+(x.unread?' • NEW':'')+'</div><div class="notification-message">'+escapeHTML(x.message||"Activity recorded")+'</div><div class="notification-time">'+escapeHTML(x.created_at?new Date(x.created_at).toLocaleString():"—")+'</div></div></div>';
+    }).join(""):'<div class="mini" style="padding:20px 0">No admin notifications yet. 🎉</div>';
+  }catch(e){box.innerHTML='<div class="mini">Unable to load notifications.</div>';}
+}
+async function markNotificationsRead(){
+  const d=await adminPost({action:"mark_notifications_read"});
+  if(d.ok)loadNotifications();
+}
 async function adminGet(view){const r=await fetch(view?"/api/admin?view="+encodeURIComponent(view):"/api/admin",{headers:{"X-Admin-Key":ADMIN_KEY}});if(!r.ok){logout();throw new Error("Unauthorized")}return r.json();}
 async function adminPost(body){const r=await fetch("/api/admin",{method:"POST",headers:{"Content-Type":"application/json","X-Admin-Key":ADMIN_KEY},body:JSON.stringify(body)});return r.json();}
 async function loadMenu(){const d=await adminGet();let m=[];try{m=JSON.parse(d.settings.MENU_CONFIG||"[]")}catch{}if(!m.length)m=[["🏏 HUB","GROUP_LINK"],["📢 Main","MAIN_CHANNEL_LINK"],["🔄 Backup","BACKUP_CHANNEL_LINK"],["⚔️ VS Match","VS_MATCH_LINK"],["🔴 Live","LIVE_LINK"],["📊 Score","SCORE_LINK"],["📅 Schedule","SCHEDULE_LINK"],["📺 Stream","STREAM_LINK"],["🔗 All Links","ALL_LINKS"],["🔔 Notifications","NOTIFICATIONS"],["👤 My Profile","PROFILE"],["📜 Rules","RULES"],["ℹ️ About","ABOUT"],["👨‍💻 Admin","ADMIN_LINK"]].map((x,i)=>({label:x[0],key:x[1],visible:true,order:i}));else{const keys=new Set(m.map(x=>x.key));if(!keys.has("NOTIFICATIONS"))m.push({label:"🔔 Notifications",key:"NOTIFICATIONS",visible:true,order:m.length});if(!keys.has("PROFILE"))m.push({label:"👤 My Profile",key:"PROFILE",visible:true,order:m.length});}const b=document.getElementById("menuRows");b.innerHTML="";m.forEach((x,i)=>{const r=document.createElement("div");r.className="menu-row";r.innerHTML='<input class="mlabel" value="'+escapeHTML(x.label)+'"><input class="mkey" value="'+escapeHTML(x.key)+'"><input class="morder" type="number" value="'+Number(x.order||i)+'"><label><input class="mvis" type="checkbox" '+(x.visible!==false?"checked":"")+'> Visible</label>';b.appendChild(r);});}
