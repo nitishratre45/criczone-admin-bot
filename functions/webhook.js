@@ -1210,6 +1210,7 @@ Please follow the group rules.`
 
         const link =
           await getLink(
+            env,
             "LIVE_LINK",
             env.LIVE_LINK
           );
@@ -1235,6 +1236,7 @@ Please follow the group rules.`
 
         const link =
           await getLink(
+            env,
             "BACKUP_CHANNEL_LINK",
             env.BACKUP_CHANNEL_LINK
           );
@@ -1298,48 +1300,45 @@ Please follow the group rules.`
 
 async function buildMainMenu(env) {
   const items = [
-    ["🏏 CRICZONE HUB", "GROUP_LINK"],
-    ["📢 Main Channel", "MAIN_CHANNEL_LINK"],
-    ["🔄 Backup Channel", "BACKUP_CHANNEL_LINK"],
-    ["⚔️ VS MATCH", "VS_MATCH_LINK"],
-    ["🔴 Live Match", "LIVE_LINK"],
-    ["📊 Live Score", "SCORE_LINK"],
-    ["📅 Match Schedule", "SCHEDULE_LINK"],
+    ["🏏 HUB", "GROUP_LINK"],
+    ["📢 Main", "MAIN_CHANNEL_LINK"],
+    ["🔄 Backup", "BACKUP_CHANNEL_LINK"],
+    ["⚔️ VS Match", "VS_MATCH_LINK"],
+    ["🔴 Live", "LIVE_LINK"],
+    ["📊 Score", "SCORE_LINK"],
+    ["📅 Schedule", "SCHEDULE_LINK"],
     ["📺 Stream", "STREAM_LINK"],
     ["🔗 All Links", "ALL_LINKS"],
     ["📜 Rules", "RULES"],
     ["ℹ️ About", "ABOUT"],
-    ["👨‍💻 Contact Admin", "ADMIN_LINK"]
+    ["👨‍💻 Admin", "ADMIN_LINK"]
   ];
 
   const rows = [];
+  let row = [];
 
   for (const [label, key] of items) {
-    if (key === "ALL_LINKS" || key === "RULES" || key === "ABOUT") {
-      rows.push([
-        {
-          text: label,
-          callback_data:
-            key === "ALL_LINKS"
-              ? "all_links"
-              : key === "RULES"
-                ? "rules"
-                : "about"
-        }
-      ]);
-      continue;
-    }
+    const callback =
+      key === "ALL_LINKS"
+        ? "all_links"
+        : key === "RULES"
+          ? "rules"
+          : key === "ABOUT"
+            ? "about"
+            : "open:" + key;
 
-    const link = await getLink(env, key, env[key]);
-    if (link) {
-      rows.push([
-        {
-          text: label,
-          callback_data: "open:" + key
-        }
-      ]);
+    row.push({
+      text: label,
+      callback_data: callback
+    });
+
+    if (row.length === 2) {
+      rows.push(row);
+      row = [];
     }
   }
+
+  if (row.length) rows.push(row);
 
   return { inline_keyboard: rows };
 }
