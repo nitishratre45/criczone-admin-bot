@@ -70,7 +70,8 @@ export async function onRequest(context) {
         "MAIN_CHANNEL_LINK",
         "SCORE_LINK",
         "SCHEDULE_LINK",
-        "STREAM_LINK"
+        "STREAM_LINK",
+        "VS_MATCH_LINK"
       ];
 
       for (const key of linkKeys) {
@@ -115,7 +116,8 @@ export async function onRequest(context) {
           "MAIN_CHANNEL_LINK",
           "SCORE_LINK",
           "SCHEDULE_LINK",
-          "STREAM_LINK"
+          "STREAM_LINK",
+          "VS_MATCH_LINK"
         ];
 
         for (const key of allowed) {
@@ -196,7 +198,8 @@ export async function onRequest(context) {
           "MAIN_CHANNEL_LINK",
           "SCORE_LINK",
           "SCHEDULE_LINK",
-          "STREAM_LINK"
+          "STREAM_LINK",
+          "VS_MATCH_LINK"
         ];
 
         if (env.BOT_KV) {
