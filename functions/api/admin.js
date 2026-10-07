@@ -349,7 +349,6 @@ async function getDashboardData(env) {
   }
   const users = await listAllKeys(env.BOT_KV, "users:");
   const broadcasts = await listAllKeys(env.BOT_KV, "broadcast:");
-  const schedules = await listAllKeys(env.BOT_KV, "schedule:");
   const activity = await listAllKeys(env.BOT_KV, "activity:");
   return { ok:true, bot:{status:"online"}, users:users.length, broadcasts:broadcasts.length, activity:activity.length, config, settings };
 }
