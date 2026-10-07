@@ -24,6 +24,20 @@ export async function onRequest(context) {
       const view = url.searchParams.get("view") || "dashboard";
       const search = (url.searchParams.get("q") || "").trim().toLowerCase();
 
+      if (view === "history") {
+        const historyKeys = await listAllKeys(env.BOT_KV, "broadcast:");
+        const history = [];
+
+        for (const key of historyKeys.slice(-50).reverse()) {
+          const raw = await env.BOT_KV.get(key.name);
+          try {
+            history.push(raw ? JSON.parse(raw) : {});
+          } catch {}
+        }
+
+        return json({ ok: true, history }, 200, cors);
+      }
+
       if (view === "users") {
         const users = await listAllKeys(env.BOT_KV, "users:");
         const result = [];
@@ -181,11 +195,47 @@ export async function onRequest(context) {
           }
         }
 
+        const historyRecord = {
+          id: Date.now().toString(),
+          created_at: new Date().toISOString(),
+          sent,
+          failed,
+          total: users.length,
+          preview: message.slice(0, 160)
+        };
+
+        try {
+          await env.BOT_KV.put(
+            `broadcast:${historyRecord.id}`,
+            JSON.stringify(historyRecord),
+            { expirationTtl: 60 * 60 * 24 * 30 }
+          );
+        } catch {}
+
         return json({
           ok: true,
           sent,
           failed,
           total: users.length
+        }, 200, cors);
+      }
+
+      if (body.action === "delete_user") {
+        const userId = String(body.user_id || "").trim();
+
+        if (!userId || !/^\d+$/.test(userId)) {
+          return json({ ok: false, error: "Valid user ID is required" }, 400, cors);
+        }
+
+        if (!env.BOT_KV) {
+          return json({ ok: false, error: "BOT_KV is not configured" }, 500, cors);
+        }
+
+        await env.BOT_KV.delete(`users:${userId}`);
+
+        return json({
+          ok: true,
+          message: "User removed from registered users"
         }, 200, cors);
       }
 
