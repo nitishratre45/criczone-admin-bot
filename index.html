@@ -1518,18 +1518,7 @@ button:active{transform:translateY(0)}
 
     </section>
 
-    <section id="notifications" style="display:none">
-      <div class="panel">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-          <div>
-            <h2>🔔 Notification Center</h2>
-            <div class="mini">Important admin activity, broadcast results and bot changes.</div>
-          </div>
-          <button class="secondary" onclick="markNotificationsRead()">✓ Mark all read</button>
-        </div>
-        <div id="notificationList" style="margin-top:16px"></div>
-      </div>
-    </section>
+    
 
     <!-- BOT -->
 
@@ -1615,9 +1604,7 @@ button:active{transform:translateY(0)}
 <script>
 
 let ADMIN_KEY =
-  localStorage.getItem(
-    "criczone_admin_key"
-  );
+  sessionStorage.getItem("criczone_admin_key");
 
 
 async function login() {
@@ -1684,7 +1671,7 @@ async function loadHealth(){
     items.innerHTML='<span>🔴 API unavailable</span>';
   }
 }
-async function loadDashboard() {loadNotifications();loadHealth();
+async function loadDashboard() {loadHealth();
 
   const response =
     await fetch(
@@ -2143,9 +2130,7 @@ function escapeHTML(value) {
 
 function logout() {
 
-  localStorage.removeItem(
-    "criczone_admin_key"
-  );
+  sessionStorage.removeItem("criczone_admin_key");
 
   ADMIN_KEY = null;
 
