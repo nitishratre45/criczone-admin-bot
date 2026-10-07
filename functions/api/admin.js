@@ -53,6 +53,27 @@ export async function onRequest(context) {
         return json({ ok: true, users: users.length, broadcasts: broadcasts.length, activity: activity.length, growth }, 200, cors);
       }
 
+      if (view === "activity") {
+        const keys = await listAllKeys(env.BOT_KV, "activity:");
+        const logs = [];
+        for (const key of keys.slice(-150).reverse()) {
+          const raw = await env.BOT_KV.get(key.name);
+          try { if (raw) logs.push(JSON.parse(raw)); } catch {}
+        }
+        return json({ ok: true, logs }, 200, cors);
+      }
+
+      if (view === "schedules") {
+        const keys = await listAllKeys(env.BOT_KV, "schedule:");
+        const schedules = [];
+        for (const key of keys) {
+          const raw = await env.BOT_KV.get(key.name);
+          try { if (raw) schedules.push(JSON.parse(raw)); } catch {}
+        }
+        schedules.sort((a,b) => String(a.run_at || "").localeCompare(String(b.run_at || "")));
+        return json({ ok: true, schedules }, 200, cors);
+      }
+
       if (view === "users") {
         const keys = await listAllKeys(env.BOT_KV, "users:");
         const result = [];
@@ -151,11 +172,18 @@ export async function onRequest(context) {
           id: String(body.schedule?.id || Date.now()),
           enabled: body.schedule?.enabled !== false,
           run_at: String(body.schedule?.run_at || ""),
-          type: String(body.schedule?.type || "text"),
+          type: ["text","photo","video"].includes(String(body.schedule?.type)) ? String(body.schedule.type) : "text",
           message: String(body.schedule?.message || "").slice(0, 4000),
+          media: String(body.schedule?.media || "").trim().slice(0, 1000),
           button_text: String(body.schedule?.button_text || "").slice(0, 80),
-          button_url: String(body.schedule?.button_url || "").trim()
+          button_url: String(body.schedule?.button_url || "").trim().slice(0, 2000)
         };
+        if (!schedule.run_at || !Number.isFinite(Date.parse(schedule.run_at))) {
+          return json({ ok:false, error:"Valid run_at date/time is required" }, 400, cors);
+        }
+        if ((schedule.type === "photo" || schedule.type === "video") && !schedule.media) {
+          return json({ ok:false, error:"Media URL/file_id is required for photo/video" }, 400, cors);
+        }
         await env.BOT_KV.put("schedule:" + schedule.id, JSON.stringify(schedule));
         await logActivity(env, "schedule", "Scheduled broadcast saved");
         return json({ ok: true, schedule }, 200, cors);
