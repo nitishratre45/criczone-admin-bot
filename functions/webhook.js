@@ -1305,48 +1305,36 @@ Please follow the group rules.`
 // ==================================================
 
 async function buildMainMenu(env) {
-  const items = [
-    ["🏏 HUB", "GROUP_LINK"],
-    ["📢 Main", "MAIN_CHANNEL_LINK"],
-    ["🔄 Backup", "BACKUP_CHANNEL_LINK"],
-    ["⚔️ VS Match", "VS_MATCH_LINK"],
-    ["🔴 Live", "LIVE_LINK"],
-    ["📊 Score", "SCORE_LINK"],
-    ["📅 Schedule", "SCHEDULE_LINK"],
-    ["📺 Stream", "STREAM_LINK"],
-    ["🔗 All Links", "ALL_LINKS"],
-    ["📜 Rules", "RULES"],
-    ["ℹ️ About", "ABOUT"],
-    ["👨‍💻 Admin", "ADMIN_LINK"]
+  const defaults = [
+    ["🏏 HUB","GROUP_LINK"],["📢 Main","MAIN_CHANNEL_LINK"],
+    ["🔄 Backup","BACKUP_CHANNEL_LINK"],["⚔️ VS Match","VS_MATCH_LINK"],
+    ["🔴 Live","LIVE_LINK"],["📊 Score","SCORE_LINK"],
+    ["📅 Schedule","SCHEDULE_LINK"],["📺 Stream","STREAM_LINK"],
+    ["🔗 All Links","ALL_LINKS"],["📜 Rules","RULES"],
+    ["ℹ️ About","ABOUT"],["👨‍💻 Admin","ADMIN_LINK"]
   ];
+  let items = defaults;
+  try {
+    const raw = await env.BOT_KV?.get("settings:MENU_CONFIG");
+    const saved = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(saved) && saved.length) {
+      items = saved.filter(x => x && x.visible !== false && x.label && x.key)
+        .sort((a,b) => Number(a.order||0)-Number(b.order||0))
+        .map(x => [String(x.label),String(x.key)]);
+    }
+  } catch {}
 
   const rows = [];
   let row = [];
-
-  for (const [label, key] of items) {
-    const callback =
-      key === "ALL_LINKS"
-        ? "all_links"
-        : key === "RULES"
-          ? "rules"
-          : key === "ABOUT"
-            ? "about"
-            : "open:" + key;
-
-    row.push({
-      text: label,
-      callback_data: callback
-    });
-
-    if (row.length === 2) {
-      rows.push(row);
-      row = [];
-    }
+  for (const [label,key] of items) {
+    const callback = key === "ALL_LINKS" ? "all_links" :
+      key === "RULES" ? "rules" :
+      key === "ABOUT" ? "about" : "open:" + key;
+    row.push({text:label,callback_data:callback});
+    if (row.length === 2) { rows.push(row); row=[]; }
   }
-
   if (row.length) rows.push(row);
-
-  return { inline_keyboard: rows };
+  return {inline_keyboard:rows};
 }
 
 async function getLink(env, key, fallback) {
