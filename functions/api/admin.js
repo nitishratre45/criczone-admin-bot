@@ -253,8 +253,8 @@ export async function onRequest(context) {
           const fileId = media?.file_id || "";
           if (!fileId) return json({ok:false,error:"Telegram did not return a file_id"},500,cors);
           await env.BOT_KV.put("settings:MEDIA_CHAT_ID", chatId);
+          await logActivity(env, "media", "Uploaded " + type + " media to media library");
           try { await telegramMethod(env.BOT_TOKEN, "deleteMessage", {chat_id:chatId, message_id:result.result.message_id}); } catch {}
-          await logActivity(env, "media", "Uploaded " + type + " media");
           return json({ok:true,type,file_id:fileId,file_name:file.name || "",size:file.size},200,cors);
         }
         return json({ok:false,error:"Invalid multipart action"},400,cors);
@@ -305,7 +305,7 @@ export async function onRequest(context) {
           order: Number.isFinite(Number(x.order)) ? Number(x.order) : i
         })).filter(x => x.label && x.key) : [];
         await env.BOT_KV.put("settings:MENU_CONFIG", JSON.stringify(menu));
-        await logActivity(env, "menu", "User menu updated");
+        await logActivity(env, "settings", "User menu updated");
         return json({ ok: true, menu }, 200, cors);
       }
 
@@ -422,12 +422,14 @@ export async function onRequest(context) {
         let t={}; try{t=JSON.parse(raw)}catch{}
         t.favorite=t.favorite!==true;
         await env.BOT_KV.put("template:"+id,JSON.stringify(t));
+        await logActivity(env, "template", "Updated template: " + (t.name || id));
         return json({ok:true,template:t},200,cors);
       }
 
       if (action === "delete_template") {
         const id = String(body.id || "").trim();
         if (id) await env.BOT_KV.delete("template:" + id);
+        await logActivity(env, "template", "Deleted template" + (id ? " " + id : ""));
         return json({ok:true},200,cors);
       }
 
