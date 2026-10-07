@@ -35,6 +35,8 @@ export async function onRequest(context) {
             const rawUser = await env.BOT_KV.get(key.name);
             const user = rawUser ? JSON.parse(rawUser) : {};
             if (String(user.channel_notifications || "on").toLowerCase() === "off") continue;
+            const prefs = Object.assign({match_alerts:true,live_updates:true,news:true,promotions:false}, user.notification_prefs || {});
+            if (prefs.news === false) continue;
           } catch {}
 
           try {
@@ -72,6 +74,7 @@ export async function onRequest(context) {
       const callbackChatId = query.message?.chat?.id;
       const callbackMessageId = query.message?.message_id;
       const data = query.data || "";
+      await trackEvent(env, "callback:" + data.split(":")[0]);
 
       await answerCallbackQuery(env.BOT_TOKEN, query.id);
 
@@ -81,27 +84,21 @@ export async function onRequest(context) {
 
       if (data === "notifications") {
         if (String(callbackChatId).startsWith("-")) {
-          await editMessageText(env.BOT_TOKEN, callbackChatId, callbackMessageId,
-            "🔔 Notification settings are available in your private chat with the bot.",
-            { inline_keyboard: [[{ text: "🏠 Home", callback_data: "menu" }]] });
+          await editMessageText(env.BOT_TOKEN, callbackChatId, callbackMessageId, "🔔 Notification settings are available in your private chat with the bot.", {inline_keyboard:[[{"text":"🏠 Home","callback_data":"menu"}]]});
           return new Response("OK");
         }
-
-        let user = {};
-        try {
-          const raw = await env.BOT_KV?.get("users:" + callbackChatId);
-          user = raw ? JSON.parse(raw) : {};
-        } catch {}
-        const enabled = String(user.channel_notifications || "on").toLowerCase() !== "off";
-
-        await editMessageText(
-          env.BOT_TOKEN, callbackChatId, callbackMessageId,
-          "<b>🔔 NOTIFICATION SETTINGS</b>\n\n━━━━━━━━━━━━━━\n<b>Channel Updates:</b> " + (enabled ? "🟢 ON" : "🔕 OFF") + "\n━━━━━━━━━━━━━━\n\nChoose your preference below.",
-          { inline_keyboard: [
-            [{ text: enabled ? "🔕 Turn OFF" : "🔔 Turn ON", callback_data: enabled ? "notify_off" : "notify_on" }],
-            [{ text: "🏠 Home", callback_data: "menu" }]
-          ] }, "HTML"
-        );
+        let user={};
+        try { const raw=await env.BOT_KV?.get("users:"+callbackChatId); user=raw?JSON.parse(raw):{}; } catch {}
+        const p=Object.assign({match_alerts:true,live_updates:true,news:true,promotions:false},user.notification_prefs||{});
+        const yn=v=>v?"🟢 ON":"🔕 OFF";
+        const buttons=[
+          [{text:"🏏 Match Alerts "+yn(p.match_alerts),callback_data:"pref:match_alerts"}],
+          [{text:"🔴 Live Updates "+yn(p.live_updates),callback_data:"pref:live_updates"}],
+          [{text:"📢 News "+yn(p.news),callback_data:"pref:news"}],
+          [{text:"🎁 Promotions "+yn(p.promotions),callback_data:"pref:promotions"}],
+          [{text:"🏠 Home",callback_data:"menu"}]
+        ];
+        await editMessageText(env.BOT_TOKEN,callbackChatId,callbackMessageId,"<b>🔔 NOTIFICATION PREFERENCES</b>\n\nManage your CRICZONE alerts by category.",{inline_keyboard:buttons},"HTML");
         return new Response("OK");
       }
 
@@ -199,6 +196,34 @@ export async function onRequest(context) {
           "HTML"
         );
 
+        return new Response("OK");
+      }
+
+      if (data === "live_match") {
+        let match = {};
+        try {
+          const raw = await env.BOT_KV?.get("settings:LIVE_MATCH");
+          match = raw ? JSON.parse(raw) : {};
+        } catch {}
+        const status = String(match.status || "Not configured");
+        const icon = /live/i.test(status) ? "🔴" : /finished|complete/i.test(status) ? "✅" : "🟢";
+        const lines = match.team_a && match.team_b
+          ? "<b>🏏 LIVE MATCH CENTER</b>\n\n"
+            + "<b>" + escapeText(match.team_a) + "</b>  🆚  <b>" + escapeText(match.team_b) + "</b>\n\n"
+            + "━━━━━━━━━━━━━━\n"
+            + icon + " <b>" + escapeText(status) + "</b>\n"
+            + "📊 <b>Score:</b> " + escapeText(match.score || "—") + "\n"
+            + "⏱️ <b>Overs:</b> " + escapeText(match.overs || "—") + "\n"
+            + "🏏 <b>Batting:</b> " + escapeText(match.batting || "—") + "\n"
+            + "🎯 <b>Bowling:</b> " + escapeText(match.bowling || "—") + "\n"
+            + (match.note ? "📝 <b>Note:</b> " + escapeText(match.note) + "\n" : "")
+            + "━━━━━━━━━━━━━━"
+          : "<b>🏏 LIVE MATCH CENTER</b>\n\nNo live match is configured right now.\n\nCheck back when the next match starts!";
+
+        const buttons = [];
+        if (match.link) buttons.push([{text:"📺 Watch / Match Link",url:match.link}]);
+        buttons.push([{text:"🔄 Refresh",callback_data:"live_match"},{text:"🏠 Home",callback_data:"menu"}]);
+        await editMessageText(env.BOT_TOKEN, callbackChatId, callbackMessageId, lines, {inline_keyboard:buttons}, "HTML");
         return new Response("OK");
       }
 
@@ -498,7 +523,9 @@ export async function onRequest(context) {
               (await env.BOT_KV.get(`users:${chatId}`).then(raw => { try { return JSON.parse(raw)?.joined_at || new Date().toISOString(); } catch { return new Date().toISOString(); } }).catch(() => new Date().toISOString())),
             last_active_at:
               new Date().toISOString(),
-            status: "active"
+            status: "active",
+            notification_prefs: {match_alerts:true,live_updates:true,news:true,promotions:false},
+            channel_notifications: "on"
           })
         );
       }
@@ -1524,10 +1551,20 @@ Please follow the group rules.`
 // MAIN INLINE MENU
 // ==================================================
 
+async function trackEvent(env, name) {
+  try {
+    if (!env.BOT_KV) return;
+    const key = "metrics:event:" + String(name).slice(0,120).replace(/[^a-zA-Z0-9:_-]/g,"_");
+    const current = Number(await env.BOT_KV.get(key)) || 0;
+    await env.BOT_KV.put(key, String(current + 1), {expirationTtl: 60*60*24*180});
+  } catch {}
+}
+
+
 async function buildMainMenu(env) {
   const defaults = [
     ["🏏 Hub","GROUP_LINK"],["📢 Main","MAIN_CHANNEL_LINK"],
-    ["🔴 Live","LIVE_LINK"],["📊 Score","SCORE_LINK"],
+    ["🔴 Live","LIVE_LINK"],["🏏 Live Match","LIVE_MATCH"],["📊 Score","SCORE_LINK"],
     ["⚔️ VS Match","VS_MATCH_LINK"],["📅 Schedule","SCHEDULE_LINK"],
     ["📺 Stream","STREAM_LINK"],["🔄 Backup","BACKUP_CHANNEL_LINK"],
     ["🔗 All Links","ALL_LINKS"],["🔔 Notifications","NOTIFICATIONS"],
@@ -1553,6 +1590,7 @@ async function buildMainMenu(env) {
   let row = [];
   for (const [label,key] of items) {
     const callback = key === "ALL_LINKS" ? "all_links" :
+      key === "LIVE_MATCH" ? "live_match" :
       key === "RULES" ? "rules" :
       key === "ABOUT" ? "about" :
       key === "NOTIFICATIONS" ? "notifications" :
