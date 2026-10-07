@@ -349,10 +349,19 @@ export async function onRequest(context) {
         );
       }
 
+      // Keep the bot UI button-based; remove the slash-command menu.
+      try {
+        await telegramMethod(
+          env.BOT_TOKEN,
+          "deleteMyCommands",
+          {}
+        );
+      } catch {}
+
       const welcome = await getBotSetting(
         env.BOT_KV,
         "WELCOME_MESSAGE",
-        `🏏 Welcome to CRICZONE!\n\nUse /help to see all commands.`
+        `🏏 Welcome to CRICZONE!\n\nChoose an option below 👇`
       );
 
       await sendMessage(
