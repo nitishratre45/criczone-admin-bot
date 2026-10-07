@@ -907,52 +907,67 @@ textarea {
 
       <div class="panel">
 
-        <h2>
-          🤖 Bot Commands
-        </h2>
+        <h2>🤖 CRICZONE Bot Control</h2>
+
+        <p style="color:#8994a5">
+          The public bot uses an inline-button menu. Users do not need to see a command list.
+        </p>
 
         <div class="grid">
 
           <div class="card">
-            /start<br>
-            <small>Register user</small>
+            <div class="card-label">🟢 Status</div>
+            <div class="card-value" style="font-size:22px">Online</div>
           </div>
 
           <div class="card">
-            /help<br>
-            <small>Show commands</small>
+            <div class="card-label">🧭 Navigation</div>
+            <div class="card-value" style="font-size:22px">Buttons</div>
           </div>
 
           <div class="card">
-            /links<br>
-            <small>Show all links</small>
+            <div class="card-label">🔗 Link Control</div>
+            <div class="card-value" style="font-size:22px">Editable</div>
           </div>
 
           <div class="card">
-            /live<br>
-            <small>Live match</small>
+            <div class="card-label">🔙 Back Navigation</div>
+            <div class="card-value" style="font-size:22px">Enabled</div>
           </div>
 
-          <div class="card">
-            /score<br>
-            <small>Live score</small>
-          </div>
+        </div>
 
-          <div class="card">
-            /schedule<br>
-            <small>Match schedule</small>
-          </div>
+      </div>
 
-          <div class="card">
-            /warn<br>
-            <small>Warn user</small>
-          </div>
+      <div class="panel">
 
-          <div class="card">
-            /ban<br>
-            <small>Ban user</small>
-          </div>
+        <h2>📱 User Menu Preview</h2>
 
+        <div class="grid">
+
+          <div class="card">🏏 HUB</div>
+          <div class="card">📢 Main Channel</div>
+          <div class="card">🔄 Backup</div>
+          <div class="card">⚔️ VS Match</div>
+          <div class="card">🔴 Live Match</div>
+          <div class="card">📊 Live Score</div>
+          <div class="card">📅 Schedule</div>
+          <div class="card">📺 Stream</div>
+          <div class="card">🔗 All Links</div>
+          <div class="card">📜 Rules</div>
+          <div class="card">ℹ️ About</div>
+          <div class="card">👨‍💻 Admin</div>
+
+        </div>
+
+        <div class="actions">
+          <button class="save" onclick="showSection('links')">
+            🔗 Edit All Links
+          </button>
+
+          <button class="secondary" onclick="showSection('settings')">
+            ⚙️ Edit Messages
+          </button>
         </div>
 
       </div>
