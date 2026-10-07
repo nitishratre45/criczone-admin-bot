@@ -2188,7 +2188,7 @@ function updateLivePreview(){if(!document.getElementById("livePvA"))return;liveP
 async function saveLiveMatch(){const match={team_a:liveTeamA.value,team_b:liveTeamB.value,status:liveStatus.value,score:liveScore.value,overs:liveOvers.value,batting:liveBatting.value,bowling:liveBowling.value,link:liveLink.value,note:liveNote.value};const d=await adminPost({action:"save_live_match",match});liveResult.textContent=d.ok?"✅ Live match saved!":"❌ "+(d.error||"Save failed");updateLivePreview();}
 async function clearLiveMatch(){if(!confirm("Clear the live match from the bot?"))return;const d=await adminPost({action:"clear_live_match"});liveResult.textContent=d.ok?"✅ Live match cleared.":"❌ "+(d.error||"Clear failed");loadLiveMatch();}
 async function saveTemplate(){
-  const template={name:tplName.value.trim(),type:tplType.value,message:tplMessage.value.trim(),media:tplMedia.value.trim(),button_text:tplButtonText.value.trim(),button_url:tplButtonUrl.value,category:tplCategory.value,favorite:false.trim()};
+  const template={name:tplName.value.trim(),type:tplType.value,message:tplMessage.value.trim(),media:tplMedia.value.trim(),button_text:tplButtonText.value.trim(),button_url:tplButtonUrl.value,category:tplCategory.value,favorite:false};
   if(!template.name)return alert("Template name is required.");
   if(!template.message&&template.type==="text")return alert("Template message is required.");
   if((template.type==="photo"||template.type==="video")&&!template.media)return alert("Media is required for photo/video.");
