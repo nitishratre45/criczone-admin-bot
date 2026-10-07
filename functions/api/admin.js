@@ -114,7 +114,7 @@ export async function onRequest(context) {
         if (uploadAction === "upload_media") {
           const file = form.get("file");
           const type = String(form.get("type") || "");
-          const chatId = String(env.MEDIA_CHAT_ID || "").trim();
+          const chatId = String(env.MEDIA_CHAT_ID || "-1004315653584").trim();
           if (!(file instanceof File)) return json({ok:false,error:"Media file is required"},400,cors);
           if (!["photo","video"].includes(type)) return json({ok:false,error:"Upload type must be photo or video"},400,cors);
           if (!chatId) return json({ok:false,error:"MEDIA_CHAT_ID is not configured in Cloudflare Pages"},500,cors);
