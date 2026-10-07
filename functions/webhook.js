@@ -1385,7 +1385,7 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function getLink(env, key, fallback) {
+async function getLink(env, key, fallback) {
   if (!env.BOT_KV) return fallback || "";
 
   try {
