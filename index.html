@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0"
+>
+
+<title>CRICZONE Admin</title>
+
+<style>
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    Inter,
+    Arial,
+    sans-serif;
+
+  background:
+    #070b12;
+
+  color: #fff;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.login {
+  min-height: 100vh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+}
+
+.login-box {
+  width: 100%;
+  max-width: 420px;
+
+  background: #101722;
+
+  border: 1px solid #202b3a;
+
+  border-radius: 20px;
+
+  padding: 32px;
+
+  box-shadow:
+    0 20px 70px
+    rgba(0,0,0,.45);
+}
+
+.logo {
+  text-align: center;
+
+  font-size: 30px;
+  font-weight: 800;
+
+  margin-bottom: 8px;
+}
+
+.logo span {
+  color: #21d17c;
+}
+
+.subtitle {
+  text-align: center;
+
+  color: #8994a5;
+
+  margin-bottom: 28px;
+}
+
+input,
+textarea {
+  width: 100%;
+
+  background: #0a1019;
+
+  color: #fff;
+
+  border: 1px solid #293545;
+
+  border-radius: 12px;
+
+  padding: 13px 14px;
+
+  outline: none;
+}
+
+input:focus,
+textarea:focus {
+  border-color: #21d17c;
+}
+
+button {
+  border: 0;
+
+  border-radius: 12px;
+
+  padding: 13px 18px;
+
+  cursor: pointer;
+
+  font-weight: 700;
+}
+
+.login-btn {
+  width: 100%;
+
+  margin-top: 15px;
+
+  background: #21d17c;
+
+  color: #06110b;
+}
+
+.error {
+  color: #ff6978;
+
+  text-align: center;
+
+  margin-top: 12px;
+}
+
+.app {
+  display: none;
+
+  min-height: 100vh;
+}
+
+.sidebar {
+  position: fixed;
+
+  left: 0;
+  top: 0;
+  bottom: 0;
+
+  width: 240px;
+
+  background: #0b111a;
+
+  border-right:
+    1px solid #202b3a;
+
+  padding: 25px 16px;
+}
+
+.brand {
+  font-size: 24px;
+  font-weight: 800;
+
+  padding: 0 12px 25px;
+}
+
+.brand span {
+  color: #21d17c;
+}
+
+.nav {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 7px;
+}
+
+.nav button {
+  text-align: left;
+
+  background: transparent;
+
+  color: #98a4b5;
+
+  width: 100%;
+}
+
+.nav button:hover,
+.nav button.active {
+  background: #142019;
+
+  color: #21d17c;
+}
+
+.main {
+  margin-left: 240px;
+
+  padding: 30px;
+
+  max-width: 1400px;
+}
+
+.topbar {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  margin-bottom: 28px;
+}
+
+.title {
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.status {
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  color: #21d17c;
+
+  background: #10251b;
+
+  padding: 9px 14px;
+
+  border-radius: 30px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+
+  border-radius: 50%;
+
+  background: #21d17c;
+}
+
+.cards {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, 1fr);
+
+  gap: 18px;
+
+  margin-bottom: 25px;
+}
+
+.card {
+  background: #101722;
+
+  border:
+    1px solid #202b3a;
+
+  border-radius: 17px;
+
+  padding: 22px;
+}
+
+.card-label {
+  color: #7e8a9c;
+
+  font-size: 14px;
+}
+
+.card-value {
+  font-size: 30px;
+
+  font-weight: 800;
+
+  margin-top: 8px;
+}
+
+.panel {
+  background: #101722;
+
+  border:
+    1px solid #202b3a;
+
+  border-radius: 17px;
+
+  padding: 24px;
+
+  margin-bottom: 20px;
+}
+
+.panel h2 {
+  margin-top: 0;
+}
+
+.grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, 1fr);
+
+  gap: 16px;
+}
+
+.field label {
+  display: block;
+
+  color: #9ca8b9;
+
+  font-size: 13px;
+
+  margin-bottom: 7px;
+}
+
+.save {
+  margin-top: 20px;
+
+  background: #21d17c;
+
+  color: #06110b;
+}
+
+.secondary {
+  background: #202b3a;
+
+  color: #fff;
+}
+
+.danger {
+  background: #3a1820;
+
+  color: #ff7180;
+}
+
+textarea {
+  min-height: 150px;
+
+  resize: vertical;
+}
+
+.actions {
+  display: flex;
+
+  gap: 10px;
+
+  flex-wrap: wrap;
+
+  margin-top: 15px;
+}
+
+.result {
+  margin-top: 15px;
+
+  color: #21d17c;
+}
+
+@media(max-width: 900px) {
+
+  .sidebar {
+    width: 70px;
+  }
+
+  .brand {
+    font-size: 0;
+    text-align: center;
+  }
+
+  .brand:first-letter {
+    font-size: 25px;
+  }
+
+  .nav button {
+    text-align: center;
+    font-size: 0;
+  }
+
+  .nav button::first-letter {
+    font-size: 20px;
+  }
+
+  .main {
+    margin-left: 70px;
+  }
+
+  .cards {
+    grid-template-columns:
+      repeat(2, 1fr);
+  }
+}
+
+@media(max-width: 600px) {
+
+  .main {
+    padding: 18px;
+  }
+
+  .cards,
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    align-items: flex-start;
+
+    gap: 12px;
+
+    flex-direction: column;
+  }
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- LOGIN -->
+
+<div
+  class="login"
+  id="login"
+>
+
+  <div class="login-box">
+
+    <div class="logo">
+      🏏 <span>CRICZONE</span>
+    </div>
+
+    <div class="subtitle">
+      Admin Control Panel
+    </div>
+
+    <input
+      id="adminKey"
+      type="password"
+      placeholder="Enter Admin Key"
+    >
+
+    <button
+      class="login-btn"
+      onclick="login()"
+    >
+      🔐 Open Dashboard
+    </button>
+
+    <div
+      id="loginError"
+      class="error"
+    ></div>
+
+  </div>
+
+</div>
+
+
+<!-- APP -->
+
+<div
+  class="app"
+  id="app"
+>
+
+  <!-- SIDEBAR -->
+
+  <aside class="sidebar">
+
+    <div class="brand">
+      🏏 <span>CRICZONE</span>
+    </div>
+
+    <div class="nav">
+
+      <button
+        class="active"
+        onclick="showSection('dashboard')"
+      >
+        📊 Dashboard
+      </button>
+
+      <button
+        onclick="showSection('links')"
+      >
+        🔗 Links
+      </button>
+
+      <button
+        onclick="showSection('broadcast')"
+      >
+        📢 Broadcast
+      </button>
+
+      <button
+        onclick="showSection('bot')"
+      >
+        🤖 Bot
+      </button>
+
+      <button
+        onclick="logout()"
+      >
+        🚪 Logout
+      </button>
+
+    </div>
+
+  </aside>
+
+
+  <!-- MAIN -->
+
+  <main class="main">
+
+    <div class="topbar">
+
+      <div class="title">
+        Admin Dashboard
+      </div>
+
+      <div class="status">
+        <span class="dot"></span>
+        Bot Online
+      </div>
+
+    </div>
+
+
+    <!-- DASHBOARD -->
+
+    <section id="dashboard">
+
+      <div class="cards">
+
+        <div class="card">
+
+          <div class="card-label">
+            👥 Registered Users
+          </div>
+
+          <div
+            class="card-value"
+            id="userCount"
+          >
+            —
+          </div>
+
+        </div>
+
+        <div class="card">
+
+          <div class="card-label">
+            🤖 Bot Status
+          </div>
+
+          <div class="card-value">
+            Online
+          </div>
+
+        </div>
+
+        <div class="card">
+
+          <div class="card-label">
+            📢 Broadcast
+          </div>
+
+          <div class="card-value">
+            Ready
+          </div>
+
+        </div>
+
+        <div class="card">
+
+          <div class="card-label">
+            💾 Storage
+          </div>
+
+          <div class="card-value">
+            KV
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="panel">
+
+        <h2>
+          ⚡ Quick Actions
+        </h2>
+
+        <div class="actions">
+
+          <button
+            class="save"
+            onclick="showSection('links')"
+          >
+            🔗 Manage Links
+          </button>
+
+          <button
+            class="secondary"
+            onclick="showSection('broadcast')"
+          >
+            📢 Broadcast
+          </button>
+
+          <button
+            class="secondary"
+            onclick="loadDashboard()"
+          >
+            🔄 Refresh
+          </button>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- LINKS -->
+
+    <section
+      id="links"
+      style="display:none"
+    >
+
+      <div class="panel">
+
+        <h2>
+          🔗 CRICZONE Links
+        </h2>
+
+        <div class="grid">
+
+          <div class="field">
+            <label>Admin Link</label>
+            <input id="ADMIN_LINK">
+          </div>
+
+          <div class="field">
+            <label>Group Link</label>
+            <input id="GROUP_LINK">
+          </div>
+
+          <div class="field">
+            <label>Main Channel</label>
+            <input id="MAIN_CHANNEL_LINK">
+          </div>
+
+          <div class="field">
+            <label>Backup Channel</label>
+            <input id="BACKUP_CHANNEL_LINK">
+          </div>
+
+          <div class="field">
+            <label>Live Link</label>
+            <input id="LIVE_LINK">
+          </div>
+
+          <div class="field">
+            <label>Score Link</label>
+            <input id="SCORE_LINK">
+          </div>
+
+          <div class="field">
+            <label>Schedule Link</label>
+            <input id="SCHEDULE_LINK">
+          </div>
+
+          <div class="field">
+            <label>Stream Link</label>
+            <input id="STREAM_LINK">
+          </div>
+
+        </div>
+
+        <div class="actions">
+
+          <button
+            class="save"
+            onclick="saveLinks()"
+          >
+            💾 Save Changes
+          </button>
+
+          <button
+            class="danger"
+            onclick="resetLinks()"
+          >
+            ♻️ Reset
+          </button>
+
+        </div>
+
+        <div
+          id="linkResult"
+          class="result"
+        ></div>
+
+      </div>
+
+    </section>
+
+
+    <!-- BROADCAST -->
+
+    <section
+      id="broadcast"
+      style="display:none"
+    >
+
+      <div class="panel">
+
+        <h2>
+          📢 Broadcast Message
+        </h2>
+
+        <p style="color:#8994a5">
+          Message will be sent to users who have used
+          <b>/start</b>.
+        </p>
+
+        <textarea
+          id="broadcastMessage"
+          placeholder="Write your announcement..."
+        ></textarea>
+
+        <div class="actions">
+
+          <button
+            class="save"
+            onclick="broadcast()"
+          >
+            📢 Send Broadcast
+          </button>
+
+        </div>
+
+        <div
+          id="broadcastResult"
+          class="result"
+        ></div>
+
+      </div>
+
+    </section>
+
+
+    <!-- BOT -->
+
+    <section
+      id="bot"
+      style="display:none"
+    >
+
+      <div class="panel">
+
+        <h2>
+          🤖 Bot Commands
+        </h2>
+
+        <div class="grid">
+
+          <div class="card">
+            /start<br>
+            <small>Register user</small>
+          </div>
+
+          <div class="card">
+            /help<br>
+            <small>Show commands</small>
+          </div>
+
+          <div class="card">
+            /links<br>
+            <small>Show all links</small>
+          </div>
+
+          <div class="card">
+            /live<br>
+            <small>Live match</small>
+          </div>
+
+          <div class="card">
+            /score<br>
+            <small>Live score</small>
+          </div>
+
+          <div class="card">
+            /schedule<br>
+            <small>Match schedule</small>
+          </div>
+
+          <div class="card">
+            /warn<br>
+            <small>Warn user</small>
+          </div>
+
+          <div class="card">
+            /ban<br>
+            <small>Ban user</small>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+</div>
+
+
+<script>
+
+let ADMIN_KEY =
+  localStorage.getItem(
+    "criczone_admin_key"
+  );
+
+
+async function login() {
+
+  const key =
+    document
+      .getElementById("adminKey")
+      .value
+      .trim();
+
+  if (!key) {
+    return;
+  }
+
+  ADMIN_KEY = key;
+
+  const response =
+    await fetch(
+      "/api/admin",
+      {
+        headers: {
+          "X-Admin-Key":
+            ADMIN_KEY
+        }
+      }
+    );
+
+  if (!response.ok) {
+
+    document
+      .getElementById("loginError")
+      .textContent =
+        "❌ Invalid Admin Key";
+
+    return;
+  }
+
+  localStorage.setItem(
+    "criczone_admin_key",
+    ADMIN_KEY
+  );
+
+  document
+    .getElementById("login")
+    .style.display =
+      "none";
+
+  document
+    .getElementById("app")
+    .style.display =
+      "block";
+
+  loadDashboard();
+}
+
+
+async function loadDashboard() {
+
+  const response =
+    await fetch(
+      "/api/admin",
+      {
+        headers: {
+          "X-Admin-Key":
+            ADMIN_KEY
+        }
+      }
+    );
+
+  if (!response.ok) {
+    logout();
+    return;
+  }
+
+  const data =
+    await response.json();
+
+  document
+    .getElementById("userCount")
+    .textContent =
+      data.users ?? 0;
+
+  const config =
+    data.config || {};
+
+  const fields = [
+    "ADMIN_LINK",
+    "GROUP_LINK",
+    "MAIN_CHANNEL_LINK",
+    "BACKUP_CHANNEL_LINK",
+    "LIVE_LINK",
+    "SCORE_LINK",
+    "SCHEDULE_LINK",
+    "STREAM_LINK"
+  ];
+
+  fields.forEach(
+    key => {
+
+      const input =
+        document.getElementById(key);
+
+      if (input) {
+        input.value =
+          config[key] || "";
+      }
+
+    }
+  );
+}
+
+
+async function saveLinks() {
+
+  const fields = [
+    "ADMIN_LINK",
+    "GROUP_LINK",
+    "MAIN_CHANNEL_LINK",
+    "BACKUP_CHANNEL_LINK",
+    "LIVE_LINK",
+    "SCORE_LINK",
+    "SCHEDULE_LINK",
+    "STREAM_LINK"
+  ];
+
+  const config = {};
+
+  fields.forEach(
+    key => {
+
+      config[key] =
+        document
+          .getElementById(key)
+          .value
+          .trim();
+
+    }
+  );
+
+  const response =
+    await fetch(
+      "/api/admin",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+
+          "X-Admin-Key":
+            ADMIN_KEY
+        },
+
+        body:
+          JSON.stringify({
+            action:
+              "save_config",
+
+            config
+          })
+      }
+    );
+
+  const data =
+    await response.json();
+
+  document
+    .getElementById("linkResult")
+    .textContent =
+      data.ok
+        ? "✅ Links saved successfully!"
+        : "❌ " + data.error;
+}
+
+
+async function resetLinks() {
+
+  if (
+    !confirm(
+      "Reset all links to Cloudflare Variables?"
+    )
+  ) {
+    return;
+  }
+
+  const response =
+    await fetch(
+      "/api/admin",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+
+          "X-Admin-Key":
+            ADMIN_KEY
+        },
+
+        body:
+          JSON.stringify({
+            action:
+              "reset_config"
+          })
+      }
+    );
+
+  const data =
+    await response.json();
+
+  if (data.ok) {
+
+    document
+      .getElementById("linkResult")
+      .textContent =
+        "✅ Configuration reset.";
+
+    loadDashboard();
+
+  } else {
+
+    document
+      .getElementById("linkResult")
+      .textContent =
+        "❌ " + data.error;
+  }
+}
+
+
+async function broadcast() {
+
+  const message =
+    document
+      .getElementById(
+        "broadcastMessage"
+      )
+      .value
+      .trim();
+
+  if (!message) {
+    alert(
+      "Write a message first."
+    );
+    return;
+  }
+
+  if (
+    !confirm(
+      "Send this broadcast to all registered users?"
+    )
+  ) {
+    return;
+  }
+
+  const response =
+    await fetch(
+      "/api/admin",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+
+          "X-Admin-Key":
+            ADMIN_KEY
+        },
+
+        body:
+          JSON.stringify({
+            action:
+              "broadcast",
+
+            message
+          })
+      }
+    );
+
+  const data =
+    await response.json();
+
+  if (data.ok) {
+
+    document
+      .getElementById(
+        "broadcastResult"
+      )
+      .textContent =
+        `✅ Sent: ${data.sent} | Failed: ${data.failed} | Total: ${data.total}`;
+
+    document
+      .getElementById(
+        "broadcastMessage"
+      )
+      .value = "";
+
+  } else {
+
+    document
+      .getElementById(
+        "broadcastResult"
+      )
+      .textContent =
+        "❌ " + data.error;
+  }
+}
+
+
+function showSection(id) {
+
+  const sections = [
+    "dashboard",
+    "links",
+    "broadcast",
+    "bot"
+  ];
+
+  sections.forEach(
+    section => {
+
+      document
+        .getElementById(section)
+        .style.display =
+          section === id
+            ? "block"
+            : "none";
+
+    }
+  );
+
+  document
+    .querySelectorAll(".nav button")
+    .forEach(
+      button =>
+        button.classList.remove(
+          "active"
+        )
+    );
+}
+
+
+function logout() {
+
+  localStorage.removeItem(
+    "criczone_admin_key"
+  );
+
+  ADMIN_KEY = null;
+
+  document
+    .getElementById("app")
+    .style.display =
+      "none";
+
+  document
+    .getElementById("login")
+    .style.display =
+      "flex";
+}
+
+
+// Auto login
+if (ADMIN_KEY) {
+
+  document
+    .getElementById("login")
+    .style.display =
+      "none";
+
+  document
+    .getElementById("app")
+    .style.display =
+      "block";
+
+  loadDashboard();
+}
+
+</script>
+
+</body>
+</html>
