@@ -79,6 +79,94 @@ export async function onRequest(context) {
         return new Response("OK");
       }
 
+      if (data === "notifications") {
+        if (String(callbackChatId).startsWith("-")) {
+          await editMessageText(env.BOT_TOKEN, callbackChatId, callbackMessageId,
+            "🔔 Notification settings are available in your private chat with the bot.",
+            { inline_keyboard: [[{ text: "🏠 Home", callback_data: "menu" }]] });
+          return new Response("OK");
+        }
+
+        let user = {};
+        try {
+          const raw = await env.BOT_KV?.get("users:" + callbackChatId);
+          user = raw ? JSON.parse(raw) : {};
+        } catch {}
+        const enabled = String(user.channel_notifications || "on").toLowerCase() !== "off";
+
+        await editMessageText(
+          env.BOT_TOKEN, callbackChatId, callbackMessageId,
+          "🔔 NOTIFICATION SETTINGS\n\nChannel updates: " + (enabled ? "🟢 ON" : "🔕 OFF") + "\n\nChoose your preference below.",
+          { inline_keyboard: [
+            [{ text: enabled ? "🔕 Turn OFF" : "🔔 Turn ON", callback_data: enabled ? "notify_off" : "notify_on" }],
+            [{ text: "🏠 Home", callback_data: "menu" }]
+          ] }
+        );
+        return new Response("OK");
+      }
+
+      if (data === "notify_off" || data === "notify_on") {
+        if (String(callbackChatId).startsWith("-")) {
+          await editMessageText(env.BOT_TOKEN, callbackChatId, callbackMessageId,
+            "⚠️ Notification settings can only be changed in your private chat with the bot.",
+            { inline_keyboard: [[{ text: "🏠 Home", callback_data: "menu" }]] });
+          return new Response("OK");
+        }
+
+        const enabled = data === "notify_on";
+        let user = {};
+        try {
+          const raw = await env.BOT_KV?.get("users:" + callbackChatId);
+          user = raw ? JSON.parse(raw) : {};
+        } catch {}
+        user.user_id = callbackChatId;
+        user.channel_notifications = enabled ? "on" : "off";
+        user.last_active_at = new Date().toISOString();
+        user.status = "active";
+        if (env.BOT_KV) await env.BOT_KV.put("users:" + callbackChatId, JSON.stringify(user));
+
+        await editMessageText(
+          env.BOT_TOKEN, callbackChatId, callbackMessageId,
+          enabled ? "🔔 Channel notifications are ON." : "🔕 Channel notifications are OFF.",
+          await buildMainMenu(env)
+        );
+        return new Response("OK");
+      }
+
+      if (data === "profile") {
+        if (String(callbackChatId).startsWith("-")) {
+          await editMessageText(env.BOT_TOKEN, callbackChatId, callbackMessageId,
+            "👤 Profile is available in your private chat with the bot.",
+            { inline_keyboard: [[{ text: "🏠 Home", callback_data: "menu" }]] });
+          return new Response("OK");
+        }
+
+        let user = {};
+        try {
+          const raw = await env.BOT_KV?.get("users:" + callbackChatId);
+          user = raw ? JSON.parse(raw) : {};
+        } catch {}
+
+        const name = escapeText(user.first_name || query.from?.first_name || "User");
+        const username = user.username || query.from?.username;
+        const joined = user.joined_at ? new Date(user.joined_at).toLocaleDateString() : "—";
+        const notifications = String(user.channel_notifications || "on").toLowerCase() === "off" ? "🔕 OFF" : "🔔 ON";
+
+        await editMessageText(
+          env.BOT_TOKEN, callbackChatId, callbackMessageId,
+          "👤 MY PROFILE\n\nName: " + name
+            + "\nUsername: " + (username ? "@" + escapeText(username) : "—")
+            + "\nUser ID: " + callbackChatId
+            + "\nJoined: " + joined
+            + "\nNotifications: " + notifications,
+          { inline_keyboard: [
+            [{ text: "🔔 Notifications", callback_data: "notifications" }],
+            [{ text: "🏠 Home", callback_data: "menu" }]
+          ] }
+        );
+        return new Response("OK");
+      }
+
       if (data === "resume_notifications") {
         if (env.BOT_KV) {
           const raw = await env.BOT_KV.get("users:" + callbackChatId);
@@ -479,6 +567,39 @@ export async function onRequest(context) {
     }
 
     // ==================================================
+    // ==================================================
+    // PROFILE / NOTIFICATIONS
+    // ==================================================
+
+    if (command === "/profile") {
+      if (chatType !== "private") {
+        await sendMessage(env.BOT_TOKEN, chatId, "👤 Open the bot in private chat to view your profile.");
+        return new Response("OK");
+      }
+      await sendMessage(env.BOT_TOKEN, chatId,
+        "👤 MY PROFILE\n\nTap below to open your profile and notification settings.",
+        { inline_keyboard: [
+          [{ text: "👤 Open Profile", callback_data: "profile" }],
+          [{ text: "🏠 Home", callback_data: "menu" }]
+        ] }
+      );
+      return new Response("OK");
+    }
+
+    if (command === "/notifications") {
+      if (chatType !== "private") {
+        await sendMessage(env.BOT_TOKEN, chatId, "🔔 Open the bot in private chat to manage notifications.");
+        return new Response("OK");
+      }
+      await sendMessage(env.BOT_TOKEN, chatId, "🔔 NOTIFICATION SETTINGS",
+        { inline_keyboard: [
+          [{ text: "⚙️ Manage Notifications", callback_data: "notifications" }],
+          [{ text: "🏠 Home", callback_data: "menu" }]
+        ] }
+      );
+      return new Response("OK");
+    }
+
     // HELP
     // ==================================================
 
@@ -1407,7 +1528,8 @@ async function buildMainMenu(env) {
     ["🔴 Live","LIVE_LINK"],["📊 Score","SCORE_LINK"],
     ["⚔️ VS Match","VS_MATCH_LINK"],["📅 Schedule","SCHEDULE_LINK"],
     ["📺 Stream","STREAM_LINK"],["🔄 Backup","BACKUP_CHANNEL_LINK"],
-    ["🔗 All Links","ALL_LINKS"],["📜 Rules","RULES"],
+    ["🔗 All Links","ALL_LINKS"],["🔔 Notifications","NOTIFICATIONS"],
+    ["👤 My Profile","PROFILE"],["📜 Rules","RULES"],
     ["ℹ️ About","ABOUT"],["👨‍💻 Admin","ADMIN_LINK"]
   ];
   let items = defaults;
@@ -1418,6 +1540,10 @@ async function buildMainMenu(env) {
       items = saved.filter(x => x && x.visible !== false && x.label && x.key)
         .sort((a,b) => Number(a.order||0)-Number(b.order||0))
         .map(x => [String(x.label),String(x.key)]);
+
+      const existingKeys = new Set(items.map(x => x[1]));
+      if (!existingKeys.has("NOTIFICATIONS")) items.push(["🔔 Notifications", "NOTIFICATIONS"]);
+      if (!existingKeys.has("PROFILE")) items.push(["👤 My Profile", "PROFILE"]);
     }
   } catch {}
 
@@ -1427,6 +1553,8 @@ async function buildMainMenu(env) {
     const callback = key === "ALL_LINKS" ? "all_links" :
       key === "RULES" ? "rules" :
       key === "ABOUT" ? "about" :
+      key === "NOTIFICATIONS" ? "notifications" :
+      key === "PROFILE" ? "profile" :
       key === "HOME" ? "menu" : "open:" + key;
     row.push({text:label,callback_data:callback});
     if (row.length === 2) { rows.push(row); row=[]; }
@@ -1435,7 +1563,7 @@ async function buildMainMenu(env) {
   return {inline_keyboard:rows};
 }
 
-async function chatTypeIsPrivate(msg) {
+function chatTypeIsPrivate(msg) {
   return msg?.chat?.type === "private";
 }
 
