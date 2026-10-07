@@ -76,15 +76,15 @@ export async function onRequest(context) {
         return json({ ok: true, logs }, 200, cors);
       }
 
-      if (view === "schedules") {
-        const keys = await listAllKeys(env.BOT_KV, "schedule:");
-        const schedules = [];
+      if (view === "templates") {
+        const keys = await listAllKeys(env.BOT_KV, "template:");
+        const templates = [];
         for (const key of keys) {
           const raw = await env.BOT_KV.get(key.name);
-          try { if (raw) schedules.push(JSON.parse(raw)); } catch {}
+          try { if (raw) templates.push(JSON.parse(raw)); } catch {}
         }
-        schedules.sort((a,b) => String(a.run_at || "").localeCompare(String(b.run_at || "")));
-        return json({ ok: true, schedules }, 200, cors);
+        templates.sort((x,y)=>String(x.name||"").localeCompare(String(y.name||"")));
+        return json({ ok: true, templates }, 200, cors);
       }
 
       if (view === "users") {
@@ -222,39 +222,29 @@ export async function onRequest(context) {
         return await handleBroadcast(env, body, cors);
       }
 
-      if (action === "save_schedule") {
-        const schedule = {
-          id: String(body.schedule?.id || Date.now()),
-          enabled: body.schedule?.enabled !== false,
-          run_at: String(body.schedule?.run_at || ""),
-          type: ["text","photo","video"].includes(String(body.schedule?.type)) ? String(body.schedule.type) : "text",
-          message: String(body.schedule?.message || "").slice(0, 4000),
-          media: String(body.schedule?.media || "").trim().slice(0, 1000),
-          button_text: String(body.schedule?.button_text || "").slice(0, 80),
-          button_url: String(body.schedule?.button_url || "").trim().slice(0, 2000)
+      if (action === "save_template") {
+        const t = {
+          id: String(body.template?.id || Date.now()),
+          name: String(body.template?.name || "").trim().slice(0, 80),
+          type: ["text","photo","video"].includes(String(body.template?.type)) ? String(body.template.type) : "text",
+          message: String(body.template?.message || "").slice(0, 4000),
+          media: String(body.template?.media || "").trim().slice(0, 1000),
+          button_text: String(body.template?.button_text || "🏏 Open").slice(0, 80),
+          button_url: String(body.template?.button_url || "").trim().slice(0, 2000)
         };
-        const runAtMs = Date.parse(schedule.run_at);
-        if (!schedule.run_at || !Number.isFinite(runAtMs)) {
-          return json({ ok:false, error:"Valid run_at date/time is required" }, 400, cors);
-        }
-        if (runAtMs <= Date.now()) {
-          return json({ ok:false, error:"Scheduled time must be in the future" }, 400, cors);
-        }
-        if (schedule.button_url && !(schedule.button_url.startsWith("http://") || schedule.button_url.startsWith("https://"))) {
-          return json({ ok:false, error:"Button URL must start with http:// or https://" }, 400, cors);
-        }
-        if ((schedule.type === "photo" || schedule.type === "video") && !schedule.media) {
-          return json({ ok:false, error:"Media URL/file_id is required for photo/video" }, 400, cors);
-        }
-        await env.BOT_KV.put("schedule:" + schedule.id, JSON.stringify(schedule));
-        await logActivity(env, "schedule", "Scheduled broadcast saved");
-        return json({ ok: true, schedule }, 200, cors);
+        if (!t.name) return json({ok:false,error:"Template name is required"},400,cors);
+        if (!t.message && t.type === "text") return json({ok:false,error:"Template message is required"},400,cors);
+        if ((t.type === "photo" || t.type === "video") && !t.media) return json({ok:false,error:"Media URL/file_id is required for photo/video"},400,cors);
+        if (t.button_url && !(t.button_url.startsWith("http://") || t.button_url.startsWith("https://"))) return json({ok:false,error:"Button URL must start with http:// or https://"},400,cors);
+        await env.BOT_KV.put("template:" + t.id, JSON.stringify(t));
+        await logActivity(env, "template", "Broadcast template saved: " + t.name);
+        return json({ok:true,template:t},200,cors);
       }
 
-      if (action === "delete_schedule") {
-        const id = String(body.id || "");
-        if (id) await env.BOT_KV.delete("schedule:" + id);
-        return json({ ok: true }, 200, cors);
+      if (action === "delete_template") {
+        const id = String(body.id || "").trim();
+        if (id) await env.BOT_KV.delete("template:" + id);
+        return json({ok:true},200,cors);
       }
 
       if (action === "delete_user") {
@@ -338,7 +328,7 @@ async function getDashboardData(env) {
   const broadcasts = await listAllKeys(env.BOT_KV, "broadcast:");
   const schedules = await listAllKeys(env.BOT_KV, "schedule:");
   const activity = await listAllKeys(env.BOT_KV, "activity:");
-  return { ok:true, bot:{status:"online"}, users:users.length, broadcasts:broadcasts.length, schedules:schedules.length, activity:activity.length, config, settings };
+  return { ok:true, bot:{status:"online"}, users:users.length, broadcasts:broadcasts.length, activity:activity.length, config, settings };
 }
 
 function defaultSetting(key) {
