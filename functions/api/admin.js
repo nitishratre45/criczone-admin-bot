@@ -103,6 +103,7 @@ export async function onRequest(context) {
               first_name: user.first_name || "Unknown",
               username: user.username || "",
               joined_at: user.joined_at || "",
+              last_active_at: user.last_active_at || "",
               status: user.status || "registered"
             });
           }
