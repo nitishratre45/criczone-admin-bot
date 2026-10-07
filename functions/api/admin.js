@@ -63,7 +63,12 @@ export async function onRequest(context) {
             failed += Number(b.failed || 0);
           } catch {}
         }
-        return json({ ok: true, users: users.length, broadcasts: broadcasts.length, activity: activity.length, growth, active24h, delivered, failed }, 200, cors);
+        const growthPct = {
+          today: users.length ? Number(((growth.today / users.length) * 100).toFixed(1)) : 0,
+          last7: users.length ? Number(((growth.last7 / users.length) * 100).toFixed(1)) : 0,
+          last30: users.length ? Number(((growth.last30 / users.length) * 100).toFixed(1)) : 0
+        };
+        return json({ ok: true, users: users.length, broadcasts: broadcasts.length, activity: activity.length, growth, growthPct, active24h, delivered, failed }, 200, cors);
       }
 
       if (view === "activity") {
@@ -104,11 +109,29 @@ export async function onRequest(context) {
               username: user.username || "",
               joined_at: user.joined_at || "",
               last_active_at: user.last_active_at || "",
-              status: user.status || "registered"
+              status: user.status || "registered",
+              channel_notifications: user.channel_notifications === "off" ? "off" : "on"
             });
           }
         }
         return json({ ok: true, users: result, total: keys.length }, 200, cors);
+      }
+
+      if (view === "user_stats") {
+        const keys = await listAllKeys(env.BOT_KV, "users:");
+        const now = Date.now();
+        let active24h = 0;
+        let notifyOn = 0;
+        for (const key of keys) {
+          const raw = await env.BOT_KV.get(key.name);
+          try {
+            const u = raw ? JSON.parse(raw) : {};
+            const last = Date.parse(u.last_active_at || "");
+            if (!Number.isNaN(last) && now - last < 86400000) active24h++;
+            if (u.channel_notifications !== "off") notifyOn++;
+          } catch {}
+        }
+        return json({ ok:true, total:keys.length, active24h, notifyOn }, 200, cors);
       }
 
       if (view === "config") {
@@ -346,52 +369,44 @@ function defaultSetting(key) {
 async function handleBroadcast(env, body, cors) {
   const type = String(body.type || "text");
   const message = String(body.message || "").trim();
+  const audience = ["all","active24h","notify_on"].includes(String(body.audience)) ? String(body.audience) : "all";
   if (!message && type === "text") return json({ok:false,error:"Message is required"},400,cors);
-  const users = await listAllKeys(env.BOT_KV, "users:");
+  const userKeys = await listAllKeys(env.BOT_KV, "users:");
+  const now = Date.now();
+  const users = [];
+  for (const key of userKeys) {
+    const raw = await env.BOT_KV.get(key.name);
+    let u = {}; try { u = raw ? JSON.parse(raw) : {}; } catch {}
+    const last = Date.parse(u.last_active_at || "");
+    const active = !Number.isNaN(last) && now - last < 86400000;
+    const notifyOn = u.channel_notifications !== "off";
+    if (audience === "active24h" && !active) continue;
+    if (audience === "notify_on" && !notifyOn) continue;
+    users.push({ key, chat_id:key.name.replace("users:","") });
+  }
   let sent=0, failed=0;
   const reply_markup = body.button_url ? {inline_keyboard:[[{
     text:String(body.button_text||"Open").slice(0,80), url:String(body.button_url).trim()
   }]]} : undefined;
-
-  for (const key of users) {
-    const chat_id = key.name.replace("users:","");
+  for (const user of users) {
+    const chat_id = user.chat_id;
     try {
       let result;
-      if (type === "photo") {
-        result = await telegramMethod(env.BOT_TOKEN,"sendPhoto",{chat_id,photo:String(body.media||"").trim(),caption:message||undefined,reply_markup});
-      } else if (type === "video") {
-        result = await telegramMethod(env.BOT_TOKEN,"sendVideo",{chat_id,video:String(body.media||"").trim(),caption:message||undefined,reply_markup});
-      } else {
-        result = await telegramMethod(env.BOT_TOKEN,"sendMessage",{chat_id,text:message,reply_markup});
-      }
-      if (result?.ok) {
-        sent++;
-      } else {
-        failed++;
-        if (result?.error_code === 400 && /chat not found|user is deactivated|bot was blocked|kicked/i.test(String(result?.description || ""))) {
-          try { await env.BOT_KV.delete(key.name); } catch {}
-        }
-      }
+      if (type === "photo") result = await telegramMethod(env.BOT_TOKEN,"sendPhoto",{chat_id,photo:String(body.media||"").trim(),caption:message||undefined,reply_markup});
+      else if (type === "video") result = await telegramMethod(env.BOT_TOKEN,"sendVideo",{chat_id,video:String(body.media||"").trim(),caption:message||undefined,reply_markup});
+      else result = await telegramMethod(env.BOT_TOKEN,"sendMessage",{chat_id,text:message,reply_markup});
+      if (result?.ok) sent++;
+      else { failed++; if (result?.error_code === 400 && /chat not found|user is deactivated|bot was blocked|kicked/i.test(String(result?.description || ""))) { try { await env.BOT_KV.delete(user.key.name); } catch {} } }
     } catch (error) {
-      failed++;
-      if (/chat not found|user is deactivated|bot was blocked|kicked/i.test(String(error?.message || ""))) {
-        try { await env.BOT_KV.delete(key.name); } catch {}
-      }
+      failed++; if (/chat not found|user is deactivated|bot was blocked|kicked/i.test(String(error?.message || ""))) { try { await env.BOT_KV.delete(user.key.name); } catch {} }
     }
     await new Promise(resolve => setTimeout(resolve, 40));
   }
-
-  const record = {
-    id:Date.now().toString(), created_at:new Date().toISOString(), type,
-    sent,failed,total:users.length,preview:(message||"").slice(0,160),
-    media:type==="text" ? "" : String(body.media||"").slice(0,250),
-    button_url:String(body.button_url||"")
-  };
+  const record = { id:Date.now().toString(), created_at:new Date().toISOString(), type, audience, sent,failed,total:users.length,preview:(message||"").slice(0,160), media:type==="text" ? "" : String(body.media||"").slice(0,250), button_url:String(body.button_url||"") };
   try { await env.BOT_KV.put("broadcast:"+record.id,JSON.stringify(record),{expirationTtl:60*60*24*90}); } catch {}
-  await logActivity(env,"broadcast","Sent "+type+" broadcast: "+sent+" delivered, "+failed+" failed");
-  return json({ok:true,sent,failed,total:users.length},200,cors);
+  await logActivity(env,"broadcast","Sent "+type+" broadcast to "+audience+": "+sent+" delivered, "+failed+" failed");
+  return json({ok:true,sent,failed,total:users.length,audience},200,cors);
 }
-
 async function logActivity(env,type,message) {
   try {
     const record={id:Date.now().toString(),created_at:new Date().toISOString(),type,message};
