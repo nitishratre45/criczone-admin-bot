@@ -151,16 +151,16 @@ export async function onRequest(context) {
         );
       }
 
+      const welcome = await getBotSetting(
+        env.BOT_KV,
+        "WELCOME_MESSAGE",
+        `🏏 Welcome to CRICZONE!\n\nUse /help to see all commands.`
+      );
+
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
-        `🏏 CRICZONE
-
-Welcome to the official CRICZONE Bot! 🔥
-
-Use /help to see all available commands.
-
-📢 Stay connected with CRICZONE for cricket updates.`
+        welcome
       );
 
       return new Response("OK");
@@ -180,6 +180,9 @@ Use /help to see all available commands.
 🏏 GENERAL
 /start
 /help
+/menu
+/ping
+/stats
 /rules
 /about
 /id
@@ -226,20 +229,7 @@ Use /help to see all available commands.
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
-        `📜 CRICZONE HUB — RULES
-
-1️⃣ Respect everyone.
-2️⃣ No spam.
-3️⃣ No abuse or personal attacks.
-4️⃣ No fake/scam links.
-5️⃣ No unwanted promotion.
-6️⃣ No NSFW content.
-7️⃣ Keep discussion related to cricket.
-8️⃣ Follow admin instructions.
-9️⃣ 3 warnings = Permanent Ban 🚫
-🔟 Admin decision will be final.
-
-❤️ Keep CRICZONE clean and friendly.`
+        rules
       );
 
       return new Response("OK");
@@ -251,21 +241,16 @@ Use /help to see all available commands.
 
     if (command === "/about") {
 
+      const about = await getBotSetting(
+        env.BOT_KV,
+        "ABOUT_MESSAGE",
+        `🏏 CRICZONE\n\nYour cricket community for match updates, live scores, schedules and cricket news.\n\n🔥 Powered by CRICZONE`
+      );
+
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
-        `🏏 CRICZONE
-
-Your cricket community for:
-
-• Match Updates
-• Live Scores
-• Match Schedule
-• Cricket News
-• Live Streaming
-• Important Links
-
-🔥 Powered by CRICZONE`
+        about
       );
 
       return new Response("OK");
@@ -672,18 +657,18 @@ ${user.id || "N/A"}`
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
-        `📊 CRICZONE BOT STATS\\n\\n👥 Registered Users: ${userKeys.length}\\n🟢 Bot Status: Online\\n💾 Storage: Cloudflare KV`
+        `📊 CRICZONE BOT STATS\n\n👥 Registered Users: ${userKeys.length}\n🟢 Bot Status: Online\n💾 Storage: Cloudflare KV`
       );
 
       return new Response("OK");
     }
 
     if (command === "/menu") {
-      const group = await getLink(env.BOT_KV, "GROUP_LINK", env.GROUP_LINK);
-      const main = await getLink(env.BOT_KV, "MAIN_CHANNEL_LINK", env.MAIN_CHANNEL_LINK);
-      const live = await getLink(env.BOT_KV, "LIVE_LINK", env.LIVE_LINK);
-      const score = await getLink(env.BOT_KV, "SCORE_LINK", env.SCORE_LINK);
-      const schedule = await getLink(env.BOT_KV, "SCHEDULE_LINK", env.SCHEDULE_LINK);
+      const group = await getLink("GROUP_LINK", env.GROUP_LINK);
+      const main = await getLink("MAIN_CHANNEL_LINK", env.MAIN_CHANNEL_LINK);
+      const live = await getLink("LIVE_LINK", env.LIVE_LINK);
+      const score = await getLink("SCORE_LINK", env.SCORE_LINK);
+      const schedule = await getLink("SCHEDULE_LINK", env.SCHEDULE_LINK);
 
       const buttons = [];
       addButton(buttons, "🏏 CRICZONE HUB", group);
@@ -695,7 +680,7 @@ ${user.id || "N/A"}`
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
-        "🏏 CRICZONE MENU\\n\\nChoose an option below 👇",
+        "🏏 CRICZONE MENU\n\nChoose an option below 👇",
         { inline_keyboard: buttons }
       );
 
@@ -1033,7 +1018,7 @@ Please follow the group rules.`
         await sendMessage(
           env.BOT_TOKEN,
           chatId,
-          "🏏 Hello! Welcome to CRICZONE 🔥\\n\\nUse /menu or /help to get started."
+          "🏏 Hello! Welcome to CRICZONE 🔥\n\nUse /menu or /help to get started."
         );
         return new Response("OK");
       }
@@ -1050,9 +1035,6 @@ Please follow the group rules.`
         );
         return new Response("OK");
       }
-
-      const lower =
-        text.toLowerCase();
 
       // LIVE
       if (
@@ -1113,19 +1095,16 @@ Please follow the group rules.`
         lower.includes("rules kya hai")
       ) {
 
+        const rules = await getBotSetting(
+          env.BOT_KV,
+          "RULES_MESSAGE",
+          `📜 CRICZONE RULES\n\n1️⃣ Respect everyone.\n2️⃣ No spam.\n3️⃣ No abuse.\n4️⃣ No fake/scam links.\n5️⃣ No unwanted promotion.\n6️⃣ No NSFW.\n7️⃣ Follow admin instructions.\n8️⃣ 3 warnings = Permanent Ban 🚫`
+        );
+
         await sendMessage(
           env.BOT_TOKEN,
           chatId,
-          `📜 CRICZONE RULES
-
-1️⃣ Respect everyone.
-2️⃣ No spam.
-3️⃣ No abuse.
-4️⃣ No fake/scam links.
-5️⃣ No unwanted promotion.
-6️⃣ No NSFW.
-7️⃣ Follow admin instructions.
-8️⃣ 3 warnings = Permanent Ban 🚫`
+          rules
         );
 
         return new Response("OK");
