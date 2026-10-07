@@ -953,14 +953,14 @@ button:active{transform:translateY(0)}
     <input
       id="adminKey"
       type="password"
-      placeholder="Enter Admin Key"
+      placeholder="Enter Admin Password" autocomplete="current-password" aria-label="Admin Password"
     >
 
     <button
       class="login-btn"
       onclick="login()"
     >
-      🔐 Open Dashboard
+      🔐 Login Securely
     </button>
 
     <div
@@ -1630,44 +1630,44 @@ async function login() {
 
   error.textContent="";
   if(!key){
-    error.textContent="⚠️ Please enter the Admin Key.";
+    error.textContent="⚠️ Please enter the Admin Password.";
     input?.focus();
     return;
   }
 
   ADMIN_KEY=key;
-  if(button){button.disabled=true;button.textContent="⏳ Checking...";}
+  if(button){button.disabled=true;button.textContent="⏳ Verifying Password...";}
 
   try{
     const response=await fetch("/api/admin",{headers:{"X-Admin-Key":ADMIN_KEY},cache:"no-store"});
     if(response.status===401){
-      error.textContent="❌ Invalid Admin Key.";
-      localStorage.removeItem("criczone_admin_key");
+      error.textContent="❌ Invalid Admin Password.";
+      sessionStorage.removeItem("criczone_admin_key");
       return;
     }
     if(!response.ok){
       error.textContent="⚠️ Admin API error ("+response.status+"). Please refresh after deployment.";
-      localStorage.removeItem("criczone_admin_key");
+      sessionStorage.removeItem("criczone_admin_key");
       return;
     }
 
     const data=await response.json();
     if(data.ok===false){
       error.textContent="❌ "+(data.error||"Login failed.");
-      localStorage.removeItem("criczone_admin_key");
+      sessionStorage.removeItem("criczone_admin_key");
       return;
     }
 
-    localStorage.setItem("criczone_admin_key",ADMIN_KEY);
+    sessionStorage.setItem("criczone_admin_key",ADMIN_KEY);
     document.getElementById("login").style.display="none";
     document.getElementById("app").style.display="block";
     await loadDashboard();
   }catch(e){
     console.error(e);
     error.textContent="⚠️ Cannot connect to Admin API. Check the Pages deployment.";
-    localStorage.removeItem("criczone_admin_key");
+    sessionStorage.removeItem("criczone_admin_key");
   }finally{
-    if(button){button.disabled=false;button.textContent="🔐 Open Dashboard";}
+    if(button){button.disabled=false;button.textContent="🔐 Login Securely";}
   }
 }
 
@@ -2173,11 +2173,11 @@ if(ADMIN_KEY){
         document.getElementById("app").style.display="block";
         await loadDashboard();
       }else{
-        localStorage.removeItem("criczone_admin_key");
+        sessionStorage.removeItem("criczone_admin_key");
         ADMIN_KEY=null;
       }
     }catch{
-      localStorage.removeItem("criczone_admin_key");
+      sessionStorage.removeItem("criczone_admin_key");
       ADMIN_KEY=null;
     }
   })();
