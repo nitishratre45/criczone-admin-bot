@@ -1917,7 +1917,7 @@ function showSection(id) {
   document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
   const activeBtn=[...document.querySelectorAll(".nav button")].find(b=>String(b.getAttribute("onclick")||"").includes("showSection('"+id+"')"));
   if(activeBtn)activeBtn.classList.add("active");
-  if(id==="dashboard")loadDashboard();if(id==="users")loadUsers();if(id==="history")loadHistory();if(id==="menu")loadMenu();if(id==="vs")loadVS();if(id==="livecenter")loadLiveMatch();if(id==="analytics")loadAnalytics();if(id==="templates")loadTemplates();if(id==="notifications")loadNotifications();if(id==="activity")loadActivity();if(id==="moderation")loadModerationStats();
+  if(id==="dashboard")loadDashboard();if(id==="users")loadUsers();if(id==="history")loadHistory();if(id==="menu")loadMenu();if(id==="vs")loadVS();if(id==="livecenter")loadLiveMatch();if(id==="analytics")loadAnalytics();if(id==="templates")loadTemplates();if(id==="activity")loadActivity();if(id==="moderation")loadModerationStats();
 }
 async function refreshCurrentSection(){
   const current=document.querySelector("section[style*='display: block']");
