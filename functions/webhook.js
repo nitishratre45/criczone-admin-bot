@@ -25,11 +25,9 @@ export async function onRequest(context) {
       const post = update.channel_post;
 
       if (env.BOT_KV) {
-        const users = await env.BOT_KV.list({
-          prefix: "users:"
-        });
+        const userKeys = await listAllKeys(env.BOT_KV, "users:");
 
-        for (const key of users.keys) {
+        for (const key of userKeys) {
           const userId = key.name.replace("users:", "");
 
           try {
@@ -219,6 +217,11 @@ Use /help to see all available commands.
     // ==================================================
 
     if (command === "/rules") {
+      const rules = await getBotSetting(
+        env.BOT_KV,
+        "RULES_MESSAGE",
+        `📜 CRICZONE HUB — RULES\\n\\n1️⃣ Respect everyone.\\n2️⃣ No spam.\\n3️⃣ No abuse.\\n4️⃣ No fake/scam links.\\n5️⃣ No unwanted promotion.\\n6️⃣ No NSFW.\\n7️⃣ Follow admin instructions.\\n8️⃣ 3 warnings = Permanent Ban 🚫`
+      );
 
       await sendMessage(
         env.BOT_TOKEN,
@@ -642,6 +645,64 @@ ${user.id || "N/A"}`
     }
 
     // ==================================================
+    // EXTRA BOT COMMANDS
+    // ==================================================
+
+    if (command === "/ping") {
+      await sendMessage(
+        env.BOT_TOKEN,
+        chatId,
+        "🏏 CRICZONE BOT\n\n🟢 Pong! Bot is online."
+      );
+      return new Response("OK");
+    }
+
+    if (command === "/stats") {
+      if (!env.BOT_KV) {
+        await sendMessage(
+          env.BOT_TOKEN,
+          chatId,
+          "📊 User statistics are unavailable."
+        );
+        return new Response("OK");
+      }
+
+      const userKeys = await listAllKeys(env.BOT_KV, "users:");
+
+      await sendMessage(
+        env.BOT_TOKEN,
+        chatId,
+        `📊 CRICZONE BOT STATS\\n\\n👥 Registered Users: ${userKeys.length}\\n🟢 Bot Status: Online\\n💾 Storage: Cloudflare KV`
+      );
+
+      return new Response("OK");
+    }
+
+    if (command === "/menu") {
+      const group = await getLink(env.BOT_KV, "GROUP_LINK", env.GROUP_LINK);
+      const main = await getLink(env.BOT_KV, "MAIN_CHANNEL_LINK", env.MAIN_CHANNEL_LINK);
+      const live = await getLink(env.BOT_KV, "LIVE_LINK", env.LIVE_LINK);
+      const score = await getLink(env.BOT_KV, "SCORE_LINK", env.SCORE_LINK);
+      const schedule = await getLink(env.BOT_KV, "SCHEDULE_LINK", env.SCHEDULE_LINK);
+
+      const buttons = [];
+      addButton(buttons, "🏏 CRICZONE HUB", group);
+      addButton(buttons, "📢 Main Channel", main);
+      addButton(buttons, "🔴 Live", live);
+      addButton(buttons, "📊 Score", score);
+      addButton(buttons, "📅 Schedule", schedule);
+
+      await sendMessage(
+        env.BOT_TOKEN,
+        chatId,
+        "🏏 CRICZONE MENU\\n\\nChoose an option below 👇",
+        { inline_keyboard: buttons }
+      );
+
+      return new Response("OK");
+    }
+
+        // ==================================================
     // MODERATION COMMANDS
     // ==================================================
 
@@ -965,6 +1026,30 @@ Please follow the group rules.`
     // ==================================================
 
     if (!text.startsWith("/")) {
+
+      const lower = text.toLowerCase();
+
+      if (["hi", "hello", "hey"].includes(lower)) {
+        await sendMessage(
+          env.BOT_TOKEN,
+          chatId,
+          "🏏 Hello! Welcome to CRICZONE 🔥\\n\\nUse /menu or /help to get started."
+        );
+        return new Response("OK");
+      }
+
+      if (lower === "stats" || lower === "users") {
+        const userKeys = env.BOT_KV
+          ? await listAllKeys(env.BOT_KV, "users:")
+          : [];
+
+        await sendMessage(
+          env.BOT_TOKEN,
+          chatId,
+          `📊 CRICZONE Users: ${userKeys.length}`
+        );
+        return new Response("OK");
+      }
 
       const lower =
         text.toLowerCase();
@@ -1329,6 +1414,45 @@ async function unmuteUser(
       }
     }
   );
+}
+
+
+async function listAllKeys(kv, prefix) {
+  if (!kv) return [];
+
+  const keys = [];
+  let cursor = undefined;
+
+  do {
+    const options = { prefix };
+    if (cursor) options.cursor = cursor;
+
+    const page = await kv.list(options);
+    keys.push(...page.keys);
+    cursor = page.list_complete ? undefined : page.cursor;
+  } while (cursor);
+
+  return keys;
+}
+
+async function getBotSetting(kv, key, fallback) {
+  if (!kv) return fallback;
+
+  try {
+    return (await kv.get(`settings:${key}`)) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+async function getLink(kv, key, fallback) {
+  if (!kv) return fallback || "";
+
+  try {
+    return (await kv.get(`config:${key}`)) || fallback || "";
+  } catch {
+    return fallback || "";
+  }
 }
 
 
