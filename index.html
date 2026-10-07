@@ -1345,7 +1345,7 @@ button:active{transform:translateY(0)}
           <div class="field"><label>Type</label><select id="tplType" style="width:100%;background:#0a1019;color:#fff;border:1px solid #293545;border-radius:12px;padding:13px"><option value="text">📝 Text</option><option value="photo">🖼️ Photo</option><option value="video">🎬 Video</option></select></div>
           <div class="field"><label>Media URL / Telegram file_id</label><input id="tplMedia" placeholder="For photo/video"></div>
           <div class="field"><label>Button Text</label><input id="tplButtonText" value="🏏 Open" maxlength="80"></div>
-          <div class="field"><label>Button URL</label><input id="tplButtonUrl" placeholder="https://..."></div>
+          <div class="field"><label>Button URL</label><input id="tplButtonUrl" placeholder="https://..."></div><div class="field"><label>Category</label><select id="tplCategory" style="width:100%;background:#0a1019;color:#fff;border:1px solid #293545;border-radius:12px;padding:13px"><option>General</option><option>Match</option><option>Live</option><option>News</option><option>Promotion</option></select></div>
         </div>
         <div class="field" style="margin-top:14px"><label>Message</label><textarea id="tplMessage" maxlength="4000" placeholder="Reusable announcement..."></textarea></div>
         <div class="actions"><button class="save" onclick="saveTemplate()">💾 Save Template</button><button class="secondary" onclick="clearTemplate()">✕ Clear</button><button class="secondary" onclick="loadTemplates()">🔄 Refresh</button></div>
@@ -2188,7 +2188,7 @@ function updateLivePreview(){if(!document.getElementById("livePvA"))return;liveP
 async function saveLiveMatch(){const match={team_a:liveTeamA.value,team_b:liveTeamB.value,status:liveStatus.value,score:liveScore.value,overs:liveOvers.value,batting:liveBatting.value,bowling:liveBowling.value,link:liveLink.value,note:liveNote.value};const d=await adminPost({action:"save_live_match",match});liveResult.textContent=d.ok?"✅ Live match saved!":"❌ "+(d.error||"Save failed");updateLivePreview();}
 async function clearLiveMatch(){if(!confirm("Clear the live match from the bot?"))return;const d=await adminPost({action:"clear_live_match"});liveResult.textContent=d.ok?"✅ Live match cleared.":"❌ "+(d.error||"Clear failed");loadLiveMatch();}
 async function saveTemplate(){
-  const template={name:tplName.value.trim(),type:tplType.value,message:tplMessage.value.trim(),media:tplMedia.value.trim(),button_text:tplButtonText.value.trim(),button_url:tplButtonUrl.value.trim()};
+  const template={name:tplName.value.trim(),type:tplType.value,message:tplMessage.value.trim(),media:tplMedia.value.trim(),button_text:tplButtonText.value.trim(),button_url:tplButtonUrl.value,category:tplCategory.value,favorite:false.trim()};
   if(!template.name)return alert("Template name is required.");
   if(!template.message&&template.type==="text")return alert("Template message is required.");
   if((template.type==="photo"||template.type==="video")&&!template.media)return alert("Media is required for photo/video.");
