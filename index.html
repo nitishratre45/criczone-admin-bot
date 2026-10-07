@@ -2072,7 +2072,7 @@ async function saveSchedule(){
   if(new Date(runAt).getTime()<=Date.now()){alert("Please select a future date and time.");return;}
   if(!message&&type==="text"){alert("Please write a scheduled message.");return;}
   if((type==="photo"||type==="video")&&!media){alert("Media URL/file_id is required for photo/video.");return;}
-  if(buttonUrl&&!/^https?:\\/\\//i.test(buttonUrl)){alert("Button URL must start with http:// or https://");return;}
+  if(buttonUrl&&!/^https?:\/\//i.test(buttonUrl)){alert("Button URL must start with http:// or https://");return;}
 
   const schedule={run_at:runAt,type,message,media,button_text:buttonText,button_url:buttonUrl,enabled:true};
   const d=await adminPost({action:"save_schedule",schedule});
