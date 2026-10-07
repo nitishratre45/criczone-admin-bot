@@ -72,7 +72,7 @@ export async function onRequest(context) {
         const welcome = await getBotSetting(
           env.BOT_KV,
           "WELCOME_MESSAGE",
-          "🏏 <b>WELCOME TO CRICZONE</b>\n\n🔥 Your all-in-one cricket hub\n📢 Channels • 🔴 Live • 📊 Score • 📅 Schedule\n\n👇 <b>Choose what you need:</b>"
+          "🏏 WELCOME TO CRICZONE\n\n🔥 Your all-in-one cricket hub\n📢 Channels • 🔴 Live • 📊 Score • 📅 Schedule\n\n👇 Choose what you need:"
         );
 
         await editMessageText(
@@ -95,8 +95,8 @@ export async function onRequest(context) {
         const status = String(match.status || "Upcoming");
         const statusIcon = /live/i.test(status) ? "🔴" : /complete|finished/i.test(status) ? "✅" : "🟢";
         const text = match.team_a && match.team_b
-          ? `⚔️ <b>VS MATCH</b>\n\n🏏 <b>${match.team_a}</b>  🆚  <b>${match.team_b}</b>\n\n📅 ${match.date || "TBA"}\n⏰ ${match.time || "TBA"}\n📍 ${match.venue || "TBA"}\n${statusIcon} <b>Status:</b> ${status}`
-          : "⚔️ <b>VS MATCH</b>\n\nNo match has been configured yet.\n\nCheck back soon!";
+          ? `⚔️ VS MATCH\n\n🏏 ${match.team_a}  🆚  ${match.team_b}\n\n📅 ${match.date || "TBA"}\n⏰ ${match.time || "TBA"}\n📍 ${match.venue || "TBA"}\n${statusIcon} Status: ${status}`
+          : "⚔️ VS MATCH\n\nNo match has been configured yet.\n\nCheck back soon!";
         const buttons = [];
         const link = match.link || await getLink(env,"VS_MATCH_LINK",env.VS_MATCH_LINK);
         if (link) buttons.push([{text:"🏏 Open Match Link",url:link}]);
@@ -169,7 +169,7 @@ export async function onRequest(context) {
             env.BOT_TOKEN,
             callbackChatId,
             callbackMessageId,
-            "⚠️ <b>Link unavailable</b>\n\nThis destination has not been configured yet.",
+            "⚠️ Link unavailable\n\nThis destination has not been configured yet.",
             {
               inline_keyboard: [
                 [
@@ -216,7 +216,7 @@ export async function onRequest(context) {
           env.BOT_TOKEN,
           callbackChatId,
           callbackMessageId,
-          "🔗 <b>CRICZONE IMPORTANT LINKS</b>\n\nChoose a destination below 👇",
+          "🔗 CRICZONE IMPORTANT LINKS\n\nChoose a destination below 👇",
           { inline_keyboard: buttons }
         );
 
@@ -408,7 +408,7 @@ export async function onRequest(context) {
       await sendMessage(
         env.BOT_TOKEN,
         chatId,
-        "🏏 <b>CRICZONE MENU</b>\n\n🔥 Fast access to everything\n👇 Select an option below",
+        "🏏 CRICZONE MENU\n\n🔥 Fast access to everything\n👇 Select an option below",
         await buildMainMenu(env)
       );
 
@@ -1207,7 +1207,7 @@ Please follow the group rules.`
         await sendMessage(
           env.BOT_TOKEN,
           chatId,
-          "🏏 <b>Hello! Welcome to CRICZONE</b> 🔥\n\nYour cricket hub is ready.\n👇 Tap <b>Menu</b> to explore."
+          "🏏 Hello! Welcome to CRICZONE 🔥\n\nYour cricket hub is ready.\n👇 Tap Menu to explore."
         );
         return new Response("OK");
       }
