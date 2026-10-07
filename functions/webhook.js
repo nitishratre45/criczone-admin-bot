@@ -117,6 +117,7 @@ export async function onRequest(context) {
           env[key] || "";
 
         const link = await getLink(
+          env,
           key,
           fallback
         );
