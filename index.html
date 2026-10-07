@@ -1711,7 +1711,7 @@ async function broadcast() {
 }
 
 function showSection(id) {
-  const sections=["dashboard","links","broadcast","users","history","settings","bot","menu","vs","analytics","moderation","activity"];
+  const sections=["dashboard","links","broadcast","templates","users","history","settings","bot","menu","vs","analytics","moderation","activity"];
   sections.forEach(section=>{const el=document.getElementById(section);if(el)el.style.display=section===id?"block":"none";});
   document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
   if(id==="users")loadUsers();if(id==="history")loadHistory();if(id==="menu")loadMenu();if(id==="vs")loadVS();if(id==="analytics")loadAnalytics();if(id==="templates")loadTemplates();if(id==="activity")loadActivity();
