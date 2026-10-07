@@ -411,6 +411,40 @@ textarea {
   }
 }
 
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+.users-table th,
+.users-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #202b3a;
+  text-align: left;
+}
+
+.users-table th {
+  color: #7e8a9c;
+  font-size: 13px;
+}
+
+.search-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.search-row input {
+  flex: 1;
+}
+
+.mini {
+  color: #8994a5;
+  font-size: 12px;
+}
+
 </style>
 
 </head>
@@ -491,6 +525,18 @@ textarea {
         onclick="showSection('broadcast')"
       >
         📢 Broadcast
+      </button>
+
+      <button
+        onclick="showSection('users')"
+      >
+        👥 Users
+      </button>
+
+      <button
+        onclick="showSection('settings')"
+      >
+        ⚙️ Settings
       </button>
 
       <button
@@ -753,6 +799,100 @@ textarea {
     </section>
 
 
+
+    <!-- USERS -->
+
+    <section
+      id="users"
+      style="display:none"
+    >
+
+      <div class="panel">
+
+        <h2>👥 Registered Users</h2>
+
+        <div class="search-row">
+          <input
+            id="userSearch"
+            placeholder="Search name, username or user ID..."
+            onkeydown="if(event.key==='Enter') loadUsers()"
+          >
+
+          <button
+            class="save"
+            onclick="loadUsers()"
+          >
+            🔎 Search
+          </button>
+        </div>
+
+        <div class="mini" id="userTotal">
+          Loading...
+        </div>
+
+        <div style="overflow-x:auto">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Username</th>
+                <th>User ID</th>
+                <th>Joined</th>
+              </tr>
+            </thead>
+            <tbody id="usersBody"></tbody>
+          </table>
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- SETTINGS -->
+
+    <section
+      id="settings"
+      style="display:none"
+    >
+
+      <div class="panel">
+
+        <h2>⚙️ Bot Settings</h2>
+
+        <div class="field">
+          <label>Welcome Message</label>
+          <textarea id="WELCOME_MESSAGE"></textarea>
+        </div>
+
+        <div class="field" style="margin-top:16px">
+          <label>Rules Message</label>
+          <textarea id="RULES_MESSAGE"></textarea>
+        </div>
+
+        <div class="field" style="margin-top:16px">
+          <label>About Message</label>
+          <textarea id="ABOUT_MESSAGE"></textarea>
+        </div>
+
+        <div class="actions">
+          <button
+            class="save"
+            onclick="saveSettings()"
+          >
+            💾 Save Bot Settings
+          </button>
+        </div>
+
+        <div
+          id="settingsResult"
+          class="result"
+        ></div>
+
+      </div>
+
+    </section>
+
     <!-- BOT -->
 
     <section
@@ -909,6 +1049,18 @@ async function loadDashboard() {
 
   const config =
     data.config || {};
+
+  const settings =
+    data.settings || {};
+
+  ["WELCOME_MESSAGE", "RULES_MESSAGE", "ABOUT_MESSAGE"].forEach(
+    key => {
+      const input = document.getElementById(key);
+      if (input) {
+        input.value = settings[key] || "";
+      }
+    }
+  );
 
   const fields = [
     "ADMIN_LINK",
@@ -1139,6 +1291,8 @@ function showSection(id) {
     "dashboard",
     "links",
     "broadcast",
+    "users",
+    "settings",
     "bot"
   ];
 
@@ -1163,6 +1317,126 @@ function showSection(id) {
           "active"
         )
     );
+}
+
+
+
+async function loadUsers() {
+
+  const q =
+    document
+      .getElementById("userSearch")
+      .value
+      .trim();
+
+  const response =
+    await fetch(
+      "/api/admin?view=users&q=" +
+      encodeURIComponent(q),
+      {
+        headers: {
+          "X-Admin-Key":
+            ADMIN_KEY
+        }
+      }
+    );
+
+  if (!response.ok) {
+    logout();
+    return;
+  }
+
+  const data =
+    await response.json();
+
+  document
+    .getElementById("userTotal")
+    .textContent =
+      `Showing ${data.users.length} of ${data.total} registered users`;
+
+  const body =
+    document.getElementById("usersBody");
+
+  body.innerHTML = "";
+
+  data.users.forEach(user => {
+
+    const row =
+      document.createElement("tr");
+
+    const joined =
+      user.joined_at
+        ? new Date(user.joined_at).toLocaleString()
+        : "—";
+
+    row.innerHTML = `
+      <td>${escapeHTML(user.first_name)}</td>
+      <td>${user.username ? "@" + escapeHTML(user.username) : "—"}</td>
+      <td>${escapeHTML(String(user.user_id))}</td>
+      <td>${escapeHTML(joined)}</td>
+    `;
+
+    body.appendChild(row);
+  });
+}
+
+
+async function saveSettings() {
+
+  const settings = {};
+
+  ["WELCOME_MESSAGE", "RULES_MESSAGE", "ABOUT_MESSAGE"].forEach(
+    key => {
+      settings[key] =
+        document
+          .getElementById(key)
+          .value;
+    }
+  );
+
+  const response =
+    await fetch(
+      "/api/admin",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+
+          "X-Admin-Key":
+            ADMIN_KEY
+        },
+
+        body:
+          JSON.stringify({
+            action:
+              "save_settings",
+            settings
+          })
+      }
+    );
+
+  const data =
+    await response.json();
+
+  document
+    .getElementById("settingsResult")
+    .textContent =
+      data.ok
+        ? "✅ Bot settings saved successfully!"
+        : "❌ " + data.error;
+}
+
+
+function escapeHTML(value) {
+
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 
