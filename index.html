@@ -1252,7 +1252,7 @@ textarea {
                 <th>Name</th>
                 <th>Username</th>
                 <th>User ID</th>
-                <th>Joined</th><th>Last Active</th>
+                <th>Joined</th><th>Last Active</th><th>Notify</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -1777,6 +1777,7 @@ async function loadUsers() {
       <td>${escapeHTML(String(user.user_id))}</td>
       <td>${escapeHTML(joined)}</td>
       <td>${user.last_active_at ? escapeHTML(new Date(user.last_active_at).toLocaleString()) : "—"}</td>
+      <td>${user.channel_notifications === "off" ? "🔕 Off" : "🔔 On"}</td>
       <td>
         <button class="danger" style="padding:7px 10px"
           onclick="deleteUser('${escapeHTML(String(user.user_id))}')">
