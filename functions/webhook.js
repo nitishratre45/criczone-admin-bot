@@ -524,8 +524,8 @@ export async function onRequest(context) {
             last_active_at:
               new Date().toISOString(),
             status: "active",
-            notification_prefs: {match_alerts:true,live_updates:true,news:true,promotions:false},
-            channel_notifications: "on"
+            notification_prefs: (() => { try { return JSON.parse(oldUserRaw || "{}").notification_prefs || {match_alerts:true,live_updates:true,news:true,promotions:false}; } catch { return {match_alerts:true,live_updates:true,news:true,promotions:false}; } })(),
+            channel_notifications: (() => { try { return JSON.parse(oldUserRaw || "{}").channel_notifications || "on"; } catch { return "on"; } })()
           })
         );
       }
@@ -1581,6 +1581,7 @@ async function buildMainMenu(env) {
         .map(x => [String(x.label),String(x.key)]);
 
       const existingKeys = new Set(items.map(x => x[1]));
+      if (!existingKeys.has("LIVE_MATCH")) items.push(["🏏 Live Match", "LIVE_MATCH"]);
       if (!existingKeys.has("NOTIFICATIONS")) items.push(["🔔 Notifications", "NOTIFICATIONS"]);
       if (!existingKeys.has("PROFILE")) items.push(["👤 My Profile", "PROFILE"]);
     }
