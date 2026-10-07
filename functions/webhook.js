@@ -1669,6 +1669,7 @@ async function getBotSetting(kv, key, fallback) {
 // ==================================================
 // TELEGRAM API
 // ==================================================
+// Build-safe: only one getLink helper is defined above.
 
 async function telegramMethod(
   token,
