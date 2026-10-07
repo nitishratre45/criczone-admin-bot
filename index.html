@@ -869,6 +869,7 @@ textarea {
       >
         📢 Broadcast
       </button>
+      <button onclick="showSection('templates')">🧩 Templates</button>
 
       <button
         onclick="showSection('users')"
@@ -1196,6 +1197,24 @@ textarea {
 
 
     <!-- USERS -->
+
+    <section id="templates" style="display:none">
+      <div class="panel">
+        <h2>🧩 Broadcast Templates</h2>
+        <p class="mini">Save reusable broadcast messages and load them into Broadcast with one click.</p>
+        <div class="grid" style="margin-top:14px">
+          <div class="field"><label>Template Name</label><input id="tplName" maxlength="80" placeholder="Match Started"></div>
+          <div class="field"><label>Type</label><select id="tplType" style="width:100%;background:#0a1019;color:#fff;border:1px solid #293545;border-radius:12px;padding:13px"><option value="text">📝 Text</option><option value="photo">🖼️ Photo</option><option value="video">🎬 Video</option></select></div>
+          <div class="field"><label>Media URL / Telegram file_id</label><input id="tplMedia" placeholder="For photo/video"></div>
+          <div class="field"><label>Button Text</label><input id="tplButtonText" value="🏏 Open" maxlength="80"></div>
+          <div class="field"><label>Button URL</label><input id="tplButtonUrl" placeholder="https://..."></div>
+        </div>
+        <div class="field" style="margin-top:14px"><label>Message</label><textarea id="tplMessage" maxlength="4000" placeholder="Reusable announcement..."></textarea></div>
+        <div class="actions"><button class="save" onclick="saveTemplate()">💾 Save Template</button><button class="secondary" onclick="clearTemplate()">✕ Clear</button><button class="secondary" onclick="loadTemplates()">🔄 Refresh</button></div>
+        <div id="templateResult" class="result"></div>
+        <div id="templateList" style="margin-top:14px"></div>
+      </div>
+    </section>
 
     <section
       id="users"
@@ -1695,7 +1714,7 @@ function showSection(id) {
   const sections=["dashboard","links","broadcast","users","history","settings","bot","menu","vs","analytics","moderation","activity"];
   sections.forEach(section=>{const el=document.getElementById(section);if(el)el.style.display=section===id?"block":"none";});
   document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
-  if(id==="users")loadUsers();if(id==="history")loadHistory();if(id==="menu")loadMenu();if(id==="vs")loadVS();if(id==="analytics")loadAnalytics();if(id==="activity")loadActivity();
+  if(id==="users")loadUsers();if(id==="history")loadHistory();if(id==="menu")loadMenu();if(id==="vs")loadVS();if(id==="analytics")loadAnalytics();if(id==="templates")loadTemplates();if(id==="activity")loadActivity();
 }
 
 
@@ -1996,6 +2015,19 @@ async function loadSchedules(){
   }).join(""):'<div class="mini" style="margin-top:15px">No saved schedules.</div>';
 }
 async function deleteSchedule(id){if(!id||!confirm("Delete this scheduled broadcast?"))return;const d=await adminPost({action:"delete_schedule",id});scheduleResult.textContent=d.ok?"Schedule deleted!":"Error: "+d.error;loadSchedules();}
+async function saveTemplate(){
+  const template={name:tplName.value.trim(),type:tplType.value,message:tplMessage.value.trim(),media:tplMedia.value.trim(),button_text:tplButtonText.value.trim(),button_url:tplButtonUrl.value.trim()};
+  if(!template.name)return alert("Template name is required.");
+  if(!template.message&&template.type==="text")return alert("Template message is required.");
+  if((template.type==="photo"||template.type==="video")&&!template.media)return alert("Media is required for photo/video.");
+  if(template.button_url&&!/^https?:\/\//i.test(template.button_url))return alert("Button URL must start with http:// or https://");
+  const d=await adminPost({action:"save_template",template}); templateResult.textContent=d.ok?"✅ Template saved!":"❌ "+(d.error||"Save failed"); if(d.ok){clearTemplate();loadTemplates();}
+}
+function clearTemplate(){tplName.value="";tplMessage.value="";tplMedia.value="";tplButtonUrl.value="";tplButtonText.value="🏏 Open";tplType.value="text";}
+async function loadTemplates(){const d=await adminGet("templates"),list=d.templates||[],box=document.getElementById("templateList");if(!box)return;box.innerHTML=list.length?list.map(x=>'<div class="v5-card" style="margin-top:10px"><b>'+escapeHTML(x.name||"Untitled")+'</b><div class="mini" style="margin-top:8px;white-space:pre-wrap">'+escapeHTML(x.message||"")+'</div><div class="actions"><button class="save" onclick="useTemplate(\''+escapeHTML(x.id)+'\')">📢 Use in Broadcast</button><button class="danger" onclick="deleteTemplate(\''+escapeHTML(x.id)+'\')">🗑️ Delete</button></div></div>').join(""):'<div class="mini">No templates saved.</div>';}
+async function useTemplate(id){const d=await adminGet("templates"),t=(d.templates||[]).find(x=>String(x.id)===String(id));if(!t)return;showSection("broadcast");broadcastType.value=t.type||"text";broadcastMessage.value=t.message||"";broadcastMedia.value=t.media||"";broadcastButtonText.value=t.button_text||"🏏 Open";broadcastButtonUrl.value=t.button_url||"";updateBroadcastPreview();}
+async function deleteTemplate(id){if(!confirm("Delete this template?"))return;const d=await adminPost({action:"delete_template",id});templateResult.textContent=d.ok?"✅ Deleted!":"❌ "+(d.error||"Delete failed");loadTemplates();}
+
 async function moderate(operation){const d=await adminPost({action:"moderate",chat_id:modChatId.value,user_id:modUserId.value,operation});modResult.textContent=d.ok?operation+" completed!":"Error: "+d.error;}
 async function loadActivity(){const d=await adminGet("activity"),b=activityBody;b.innerHTML="";(d.logs||[]).forEach(x=>{const r=document.createElement("tr");r.innerHTML="<td>"+escapeHTML(x.created_at?new Date(x.created_at).toLocaleString():"—")+"</td><td>"+escapeHTML(x.type||"")+"</td><td>"+escapeHTML(x.message||"")+"</td>";b.appendChild(r);});}
 </script>
