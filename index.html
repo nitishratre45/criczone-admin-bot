@@ -766,11 +766,6 @@ textarea {
 }
 
 
-/* Scheduled broadcast controls */
-.schedule-time-box{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.timezone-badge{background:#0a1019;border:1px solid #293545;border-radius:12px;padding:13px 14px;color:#d8e1ee}
-.schedule-preview{margin-top:16px;padding:13px 15px;border-radius:12px;background:#10251b;border:1px solid #1d5b40;color:#21d17c;font-size:14px}
-@media(max-width:768px){.schedule-time-box{grid-template-columns:1fr;gap:12px}}
 
 /* ===== Admin polish ===== */
 .input-meta{display:flex;justify-content:space-between;align-items:center;margin-top:6px;color:#718096;font-size:12px}
@@ -895,7 +890,6 @@ textarea {
       <button onclick="showSection('menu')">🧭 Menu Editor</button>
       <button onclick="showSection('vs')">⚔️ VS Match</button>
       <button onclick="showSection('analytics')">📈 Analytics</button>
-      <button onclick="showSection('schedule')">⏰ Scheduled Broadcast</button>
       <button onclick="showSection('moderation')">🛡️ Moderation</button>
       <button onclick="showSection('activity')">📝 Activity Logs</button>
 
@@ -1021,12 +1015,6 @@ textarea {
             onclick="loadDashboard()"
           >
             🔄 Refresh
-          </button>
-          <button
-            class="secondary"
-            onclick="showSection('schedule')"
-          >
-            ⏰ Schedule
           </button>
           <button
             class="secondary"
@@ -1296,78 +1284,6 @@ textarea {
       </div>
       <div class="actions"><button class="save" onclick="saveVS()">💾 Save VS Match</button><button class="secondary" onclick="loadVS()">🔄 Reload</button></div><div id="vsResult" class="result"></div></div></section>
     <section id="analytics" style="display:none"><div class="panel"><h2>📈 Analytics Dashboard</h2><div class="v5-grid" id="analyticsCards"></div><div class="panel" style="margin-top:18px"><h3>📊 User Growth</h3><div id="growthStats" class="mini"></div></div></div></section>
-    <section id="schedule" style="display:none">
-<div class="panel">
-  <h2>⏰ Scheduled Broadcast</h2>
-  <p class="mini">Set a date and time in India Standard Time (IST). The system will automatically create the required schedule format.</p>
-
-  <div class="schedule-time-box">
-    <div class="field">
-      <label>📅 Date</label>
-      <input id="schDate" type="date">
-    </div>
-    <div class="field">
-      <label>⏰ Time (IST)</label>
-      <input id="schTime" type="time">
-    </div>
-  </div>
-
-  <div class="field" style="margin-top:14px">
-    <label>📍 Timezone</label>
-    <div class="timezone-badge">🇮🇳 India Standard Time (IST) · UTC+05:30</div>
-  </div>
-
-  <div class="grid" style="margin-top:14px">
-    <div class="field">
-      <label>📦 Type</label>
-      <select id="schType" style="width:100%;background:#0a1019;color:#fff;border:1px solid #293545;border-radius:12px;padding:13px">
-        <option value="text">📝 Text</option>
-        <option value="photo">🖼️ Photo</option>
-        <option value="video">🎬 Video</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>🖼️ Media URL / Telegram file_id</label>
-      <input id="schMedia" placeholder="Only required for photo/video">
-    </div>
-    <div class="field">
-      <label>📤 Upload Media</label>
-      <input id="schMediaFile" type="file" accept="image/*,video/*" onchange="syncUploadType('schedule')">
-      <div class="actions" style="margin-top:8px"><button type="button" class="secondary" onclick="uploadAdminMedia('schedule')">⬆️ Upload Media</button></div>
-      <div class="mini">Upload from your PC. Telegram file_id will be added automatically.</div>
-    </div>
-  </div>
-
-  <div class="field" style="margin-top:14px">
-    <label>📝 Scheduled Message</label>
-    <textarea id="schMessage" placeholder="Write the message that should be sent..."></textarea>
-  </div>
-
-  <div class="grid" style="margin-top:12px">
-    <div class="field">
-      <label>🔘 Button Text <span class="mini">(optional)</span></label>
-      <input id="schButtonText" value="🏏 Open" placeholder="🏏 Open">
-    </div>
-    <div class="field">
-      <label>🔗 Button URL <span class="mini">(optional)</span></label>
-      <input id="schButtonUrl" placeholder="https://...">
-    </div>
-  </div>
-
-  <div class="schedule-preview" id="schedulePreview">
-    📅 Select a date and time to preview the scheduled time.
-  </div>
-
-  <div class="actions">
-    <button class="save" onclick="saveSchedule()">💾 Schedule Broadcast</button>
-    <button class="secondary" onclick="loadSchedules()">🔄 Refresh</button>
-  </div>
-
-  <div id="scheduleResult" class="result"></div>
-  <div id="scheduleSummary" class="mini" style="margin-top:12px"></div>
-  <div id="scheduleList"></div>
-</div>
-</section>
     <section id="moderation" style="display:none"><div class="panel"><h2>🛡️ Moderation Panel</h2><p class="mini">Enter the group/chat ID and target user ID.</p><div class="grid"><div class="field"><label>Group / Chat ID</label><input id="modChatId" placeholder="-100..."></div><div class="field"><label>User ID</label><input id="modUserId"></div></div><div class="actions"><button class="danger" onclick="moderate('ban')">🚫 Ban</button><button class="secondary" onclick="moderate('unban')">✅ Unban</button><button class="secondary" onclick="moderate('mute')">🔇 Mute</button><button class="secondary" onclick="moderate('unmute')">🔊 Unmute</button><button class="danger" onclick="moderate('kick')">👢 Kick</button><button class="secondary" onclick="moderate('warn')">⚠️ Warn</button></div><div id="modResult" class="result"></div></div></section>
     <section id="activity" style="display:none"><div class="panel"><h2>📝 Activity Logs</h2><button class="secondary" onclick="loadActivity()">🔄 Refresh</button><div style="overflow-x:auto;margin-top:15px"><table class="users-table"><thead><tr><th>Date</th><th>Type</th><th>Action</th></tr></thead><tbody id="activityBody"></tbody></table></div></div></section>
     <!-- SETTINGS -->
@@ -1776,10 +1692,10 @@ async function broadcast() {
 }
 
 function showSection(id) {
-  const sections=["dashboard","links","broadcast","users","history","settings","bot","menu","vs","analytics","schedule","moderation","activity"];
+  const sections=["dashboard","links","broadcast","users","history","settings","bot","menu","vs","analytics","moderation","activity"];
   sections.forEach(section=>{const el=document.getElementById(section);if(el)el.style.display=section===id?"block":"none";});
   document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
-  if(id==="users")loadUsers();if(id==="history")loadHistory();if(id==="menu")loadMenu();if(id==="vs")loadVS();if(id==="analytics")loadAnalytics();if(id==="schedule")loadSchedules();if(id==="activity")loadActivity();
+  if(id==="users")loadUsers();if(id==="history")loadHistory();if(id==="menu")loadMenu();if(id==="vs")loadVS();if(id==="analytics")loadAnalytics();if(id==="activity")loadActivity();
 }
 
 
@@ -2047,51 +1963,8 @@ function updateVSPreview(){
 async function loadVS(){const d=await adminGet();let m={};try{m=JSON.parse(d.settings.VS_MATCH||"{}")}catch{}vsTeamA.value=m.team_a||"";vsTeamB.value=m.team_b||"";vsDate.value=m.date||"";vsTime.value=m.time||"";vsVenue.value=m.venue||"";vsStatus.value=m.status||"Upcoming";vsLink.value=m.link||d.config.VS_MATCH_LINK||"";updateVSPreview();}
 async function saveVS(){const match={team_a:vsTeamA.value,team_b:vsTeamB.value,date:vsDate.value,time:vsTime.value,venue:vsVenue.value,status:vsStatus.value,link:vsLink.value};const d=await adminPost({action:"save_vs_match",match});vsResult.textContent=d.ok?"✅ VS Match saved!":"❌ Error: "+d.error;updateVSPreview();}
 async function loadAnalytics(){const d=await adminGet("analytics"),g=d.growth||{};analyticsCards.innerHTML='<div class="v5-card"><h3>👥 Users</h3><b>'+d.users+'</b><div class="mini">Registered</div></div><div class="v5-card"><h3>🟢 Active</h3><b>'+ (d.active24h||0) +'</b><div class="mini">Active in 24h</div></div><div class="v5-card"><h3>📢 Broadcasts</h3><b>'+d.broadcasts+'</b><div class="mini">Delivery records</div></div><div class="v5-card"><h3>📬 Delivered</h3><b>'+ (d.delivered||0) +'</b><div class="mini">Messages delivered</div></div><div class="v5-card"><h3>🔴 Failed</h3><b>'+ (d.failed||0) +'</b><div class="mini">Delivery failures</div></div><div class="v5-card"><h3>⏰ Schedules</h3><b>'+ (d.schedules||0) +'</b><div class="mini">Pending records</div></div>';growthStats.innerHTML="<b>Growth</b><br>Today: "+(g.today||0)+" • 7 days: "+(g.last7||0)+" • 30 days: "+(g.last30||0)+"<br><b>Delivery</b><br>"+(d.delivered||0)+" delivered • "+(d.failed||0)+" failed";}
-function getScheduleISO(){
-  const date=document.getElementById("schDate").value;
-  const time=document.getElementById("schTime").value;
-  if(!date||!time)return null;
-  return date+"T"+time+":00+05:30";
-}
-function updateSchedulePreview(){
-  const preview=document.getElementById("schedulePreview");
-  const iso=getScheduleISO();
-  if(!iso){
-    preview.textContent="📅 Select a date and time to preview the scheduled time.";
-    return;
-  }
-  const d=new Date(iso);
-  if(Number.isNaN(d.getTime())){
-    preview.textContent="⚠️ Please select a valid date and time.";
-    return;
-  }
-  preview.textContent="📅 Scheduled for "+d.toLocaleString("en-IN",{dateStyle:"full",timeStyle:"short",timeZone:"Asia/Kolkata"})+" IST";
-}
 function syncUploadType(target){const typeEl=document.getElementById(target==="broadcast"?"broadcastType":"schType");const file=document.getElementById(target==="broadcast"?"broadcastMediaFile":"schMediaFile")?.files?.[0];if(typeEl&&file)typeEl.value=file.type.startsWith("video/")?"video":"photo";}
 async function uploadAdminMedia(target){const file=document.getElementById(target==="broadcast"?"broadcastMediaFile":"schMediaFile")?.files?.[0];const typeEl=document.getElementById(target==="broadcast"?"broadcastType":"schType");const type=(typeEl?.value==="video"||file?.type?.startsWith("video/"))?"video":"photo";const status=document.getElementById("mediaUploadStatus");if(!file){alert("Choose a photo or video first.");return;}const max=type==="photo"?10*1024*1024:50*1024*1024;if(file.size>max){alert((type==="photo"?"Photo":"Video")+" is too large.");return;}if(status)status.textContent="⏳ Uploading "+file.name+"...";const form=new FormData();form.append("action","upload_media");form.append("type",type);form.append("file",file,file.name);try{const r=await fetch("/api/admin",{method:"POST",headers:{"X-Admin-Key":ADMIN_KEY},body:form});const d=await r.json();if(!d.ok){if(status)status.textContent="❌ "+(d.error||"Upload failed");alert(d.error||"Upload failed");return;}const mediaInput=document.getElementById(target==="broadcast"?"broadcastMedia":"schMedia");if(mediaInput)mediaInput.value=d.file_id||"";if(status)status.textContent="✅ Uploaded • file_id ready";alert("✅ Media uploaded. file_id added automatically.");}catch(e){console.error(e);if(status)status.textContent="❌ Upload failed";alert("Upload failed. Please try again.");}}
-async function saveSchedule(){
-  const runAt=getScheduleISO();
-  const message=document.getElementById("schMessage").value.trim();
-  const type=document.getElementById("schType").value;
-  const media=document.getElementById("schMedia").value.trim();
-  const buttonText=document.getElementById("schButtonText").value.trim();
-  const buttonUrl=document.getElementById("schButtonUrl").value.trim();
-
-  if(!runAt){alert("Please select a date and time.");return;}
-  if(new Date(runAt).getTime()<=Date.now()){alert("Please select a future date and time.");return;}
-  if(!message&&type==="text"){alert("Please write a scheduled message.");return;}
-  if((type==="photo"||type==="video")&&!media){alert("Media URL/file_id is required for photo/video.");return;}
-  if(buttonUrl&&!/^https?:\/\//i.test(buttonUrl)){alert("Button URL must start with http:// or https://");return;}
-
-  const schedule={run_at:runAt,type,message,media,button_text:buttonText,button_url:buttonUrl,enabled:true};
-  const d=await adminPost({action:"save_schedule",schedule});
-  document.getElementById("scheduleResult").textContent=d.ok?"✅ Broadcast scheduled successfully!":"❌ Error: "+d.error;
-  if(d.ok){
-    document.getElementById("schMessage").value="";
-    document.getElementById("schMedia").value="";
-    loadSchedules();
-  }
-}
 document.addEventListener("DOMContentLoaded",()=>{
   ["vsTeamA","vsTeamB","vsDate","vsTime","vsVenue","vsStatus"].forEach(id=>{
     const e=document.getElementById(id);
