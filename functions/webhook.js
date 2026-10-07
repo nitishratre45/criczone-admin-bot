@@ -1666,17 +1666,6 @@ async function getBotSetting(kv, key, fallback) {
   }
 }
 
-async function getLink(kv, key, fallback) {
-  if (!kv) return fallback || "";
-
-  try {
-    return (await kv.get(`config:${key}`)) || fallback || "";
-  } catch {
-    return fallback || "";
-  }
-}
-
-
 // ==================================================
 // TELEGRAM API
 // ==================================================
