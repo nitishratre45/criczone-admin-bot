@@ -106,11 +106,52 @@ export async function onRequest(context) {
     }
 
     if (request.method === "POST") {
-      const body = await request.json();
+      let body = {};
+      const contentType = request.headers.get("content-type") || "";
+      if (contentType.includes("multipart/form-data")) {
+        const form = await request.formData();
+        const uploadAction = String(form.get("action") || "");
+        if (uploadAction === "upload_media") {
+          const file = form.get("file");
+          const type = String(form.get("type") || "");
+          const chatId = String(form.get("chat_id") || "").trim();
+          if (!(file instanceof File)) return json({ok:false,error:"Media file is required"},400,cors);
+          if (!["photo","video"].includes(type)) return json({ok:false,error:"Upload type must be photo or video"},400,cors);
+          if (!chatId) return json({ok:false,error:"Telegram Media Chat ID is required"},400,cors);
+          const maxBytes = type === "photo" ? 10 * 1024 * 1024 : 50 * 1024 * 1024;
+          if (file.size > maxBytes) return json({ok:false,error:(type === "photo" ? "Photo" : "Video") + " is too large. Max " + (type === "photo" ? "10 MB" : "50 MB")},400,cors);
+          const tgForm = new FormData();
+          tgForm.append("chat_id", chatId);
+          tgForm.append(type, file, file.name || ("criczone-" + type));
+          tgForm.append("caption", "CRICZONE Admin Media Upload");
+          const method = type === "photo" ? "sendPhoto" : "sendVideo";
+          const tg = await fetch("https://api.telegram.org/bot" + env.BOT_TOKEN + "/" + method, {method:"POST",body:tgForm});
+          const result = await tg.json();
+          if (!result.ok) return json({ok:false,error:result.description || "Telegram upload failed"},400,cors);
+          const media = type === "photo" ? result.result?.photo?.[result.result.photo.length - 1] : result.result?.video;
+          const fileId = media?.file_id || "";
+          if (!fileId) return json({ok:false,error:"Telegram did not return a file_id"},500,cors);
+          await env.BOT_KV.put("settings:MEDIA_CHAT_ID", chatId);
+          try { await telegramMethod(env.BOT_TOKEN, "deleteMessage", {chat_id:chatId, message_id:result.result.message_id}); } catch {}
+          await logActivity(env, "media", "Uploaded " + type + " media");
+          return json({ok:true,type,file_id:fileId,file_name:file.name || "",size:file.size},200,cors);
+        }
+        return json({ok:false,error:"Invalid multipart action"},400,cors);
+      } else {
+        body = await request.json();
+      }
       const action = body.action;
 
       if (!env.BOT_KV && !["health"].includes(action)) {
         return json({ ok: false, error: "BOT_KV is not configured" }, 500, cors);
+      }
+
+      if (action === "save_media_chat") {
+        const chatId = String(body.chat_id || "").trim();
+        if (!chatId) return json({ok:false,error:"Telegram Media Chat ID is required"},400,cors);
+        await env.BOT_KV.put("settings:MEDIA_CHAT_ID", chatId);
+        await logActivity(env, "media", "Media chat ID updated");
+        return json({ok:true,chat_id:chatId},200,cors);
       }
 
       if (action === "save_config") {
@@ -261,7 +302,7 @@ const LINK_KEYS = [
   "ADMIN_LINK","BACKUP_CHANNEL_LINK","GROUP_LINK","LIVE_LINK","MAIN_CHANNEL_LINK",
   "SCORE_LINK","SCHEDULE_LINK","STREAM_LINK","VS_MATCH_LINK"
 ];
-const SETTING_KEYS = ["WELCOME_MESSAGE","RULES_MESSAGE","ABOUT_MESSAGE","MENU_CONFIG","VS_MATCH"];
+const SETTING_KEYS = ["WELCOME_MESSAGE","RULES_MESSAGE","ABOUT_MESSAGE","MENU_CONFIG","VS_MATCH","MEDIA_CHAT_ID"];
 
 async function getDashboardData(env) {
   const config = {};
@@ -285,6 +326,7 @@ function defaultSetting(key) {
   if (key === "ABOUT_MESSAGE") return "🏏 CRICZONE\n\nYour cricket community for match updates, live scores, schedules and cricket news.";
   if (key === "MENU_CONFIG") return JSON.stringify([]);
   if (key === "VS_MATCH") return JSON.stringify({team_a:"",team_b:"",date:"",time:"",venue:"",status:"Upcoming",link:""});
+  if (key === "MEDIA_CHAT_ID") return "";
   return "";
 }
 
