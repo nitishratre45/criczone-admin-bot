@@ -359,10 +359,16 @@ export async function onRequest(context) {
         );
       } catch {}
 
-      const welcome = await getBotSetting(
+      let welcome = await getBotSetting(
         env.BOT_KV,
         "WELCOME_MESSAGE",
         `🏏 Welcome to CRICZONE!\n\nChoose an option below 👇`
+      );
+
+      // Remove the old command-list instruction from saved welcome text.
+      welcome = welcome.replace(
+        /Use \/help[^\\n]*/gi,
+        "Choose an option below 👇"
       );
 
       await sendMessage(
