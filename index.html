@@ -1093,6 +1093,294 @@ button:active{transform:translateY(0)}
   .panel{border-radius:15px}
 }
 
+
+/* ===== CRICZONE ADMIN — FULL VISUAL REFRESH ===== */
+:root{
+  --cz-bg:#060a11;
+  --cz-surface:#0c131e;
+  --cz-surface-2:#101a28;
+  --cz-line:rgba(148,163,184,.15);
+  --cz-text:#f7fafc;
+  --cz-muted:#91a0b3;
+  --cz-green:#19d77b;
+  --cz-green-2:#0fae62;
+  --cz-blue:#4da3ff;
+  --cz-purple:#9b7cff;
+  --cz-orange:#ffad4d;
+  --cz-red:#ff6474;
+}
+*{-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(700px 420px at 12% -8%,rgba(25,215,123,.13),transparent 62%),
+    radial-gradient(650px 420px at 100% 8%,rgba(77,163,255,.11),transparent 62%),
+    linear-gradient(180deg,#050910 0%,#070b12 55%,#05080d 100%);
+  color:var(--cz-text);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+.login{
+  background:
+    radial-gradient(450px 300px at 50% 35%,rgba(25,215,123,.08),transparent 70%),
+    transparent;
+}
+.login-box{
+  position:relative;
+  overflow:hidden;
+  background:linear-gradient(145deg,rgba(15,24,37,.97),rgba(7,12,20,.99));
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:24px;
+  box-shadow:0 35px 100px rgba(0,0,0,.58),inset 0 1px 0 rgba(255,255,255,.035);
+}
+.login-box::before{
+  content:"";
+  position:absolute;
+  width:180px;height:180px;
+  top:-100px;right:-80px;
+  border-radius:50%;
+  background:rgba(25,215,123,.10);
+  filter:blur(4px);
+}
+.logo{letter-spacing:-.055em}
+.login-btn{
+  background:linear-gradient(135deg,var(--cz-green),var(--cz-green-2));
+  box-shadow:0 12px 32px rgba(25,215,123,.20);
+}
+.login-btn:hover{box-shadow:0 16px 38px rgba(25,215,123,.30)}
+.sidebar{
+  background:rgba(5,10,17,.90);
+  border-right:1px solid var(--cz-line);
+  box-shadow:18px 0 55px rgba(0,0,0,.20);
+  backdrop-filter:blur(22px);
+}
+.brand{
+  font-size:26px;
+  letter-spacing:-.055em;
+  padding-top:2px;
+}
+.brand span{color:var(--cz-green)}
+.nav{gap:5px}
+.nav button{
+  min-height:44px;
+  border:1px solid transparent;
+  border-radius:12px;
+  color:#8d9aac;
+  transition:all .18s ease;
+}
+.nav button:hover{
+  color:#f2f7fb;
+  background:rgba(255,255,255,.035);
+  transform:translateX(2px);
+}
+.nav button.active{
+  color:#eafff3;
+  background:linear-gradient(90deg,rgba(25,215,123,.15),rgba(25,215,123,.035));
+  border-color:rgba(25,215,123,.18);
+  box-shadow:inset 3px 0 0 var(--cz-green),0 8px 25px rgba(0,0,0,.12);
+}
+.main{max-width:1500px}
+.topbar{
+  padding:3px 0 18px;
+  border-bottom:1px solid rgba(255,255,255,.055);
+}
+.title{
+  letter-spacing:-.045em;
+  font-weight:850;
+}
+.status{
+  border:1px solid rgba(25,215,123,.22);
+  background:linear-gradient(135deg,rgba(25,215,123,.11),rgba(25,215,123,.035));
+  box-shadow:0 8px 28px rgba(25,215,123,.07);
+}
+.dot{box-shadow:0 0 14px rgba(25,215,123,.85)}
+.cards{gap:15px}
+.card{
+  position:relative;
+  overflow:hidden;
+  background:linear-gradient(145deg,rgba(16,25,38,.96),rgba(8,14,23,.98));
+  border:1px solid var(--cz-line);
+  border-radius:19px;
+  box-shadow:0 18px 50px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.025);
+  transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+.card::before{
+  content:"";
+  position:absolute;
+  width:130px;height:130px;
+  right:-60px;top:-72px;
+  border-radius:50%;
+  background:rgba(25,215,123,.09);
+}
+.card::after{
+  content:"";
+  position:absolute;
+  left:0;top:0;bottom:0;
+  width:3px;
+  background:var(--cz-green);
+  opacity:.75;
+}
+.card:hover{
+  transform:translateY(-3px);
+  border-color:rgba(25,215,123,.20);
+  box-shadow:0 22px 60px rgba(0,0,0,.27);
+}
+.cards .card:nth-child(2)::after{background:var(--cz-blue)}
+.cards .card:nth-child(3)::after{background:var(--cz-orange)}
+.cards .card:nth-child(4)::after{background:var(--cz-purple)}
+.cards .card:nth-child(2)::before{background:rgba(77,163,255,.09)}
+.cards .card:nth-child(3)::before{background:rgba(255,173,77,.08)}
+.cards .card:nth-child(4)::before{background:rgba(155,124,255,.08)}
+.card-label{position:relative;z-index:1}
+.card-value{
+  position:relative;
+  z-index:1;
+  letter-spacing:-.055em;
+}
+.panel{
+  background:linear-gradient(145deg,rgba(14,22,34,.96),rgba(8,14,23,.98));
+  border:1px solid var(--cz-line);
+  border-radius:19px;
+  box-shadow:0 18px 55px rgba(0,0,0,.19),inset 0 1px 0 rgba(255,255,255,.025);
+}
+.panel h2{letter-spacing:-.035em}
+.actions{gap:9px}
+.actions button{
+  border-radius:12px;
+  box-shadow:0 8px 20px rgba(0,0,0,.10);
+}
+.save{
+  background:linear-gradient(135deg,var(--cz-green),#10b968);
+  box-shadow:0 10px 28px rgba(25,215,123,.16)!important;
+}
+.secondary{
+  background:linear-gradient(145deg,#1b2738,#141e2c);
+  border:1px solid rgba(148,163,184,.16);
+}
+.danger{
+  background:linear-gradient(145deg,rgba(255,100,116,.12),rgba(90,24,35,.16));
+  border:1px solid rgba(255,100,116,.20);
+}
+input,textarea,select{
+  background:rgba(5,10,17,.80)!important;
+  border:1px solid rgba(148,163,184,.20)!important;
+  color:#f5f7fa!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.018);
+}
+input:hover,textarea:hover,select:hover{border-color:rgba(148,163,184,.35)!important}
+input:focus,textarea:focus,select:focus{
+  border-color:rgba(25,215,123,.82)!important;
+  box-shadow:0 0 0 3px rgba(25,215,123,.09),0 8px 25px rgba(0,0,0,.14)!important;
+}
+.result{
+  border:1px solid rgba(25,215,123,.14);
+  background:rgba(25,215,123,.045);
+  border-radius:11px;
+}
+.v5-card{
+  background:linear-gradient(145deg,#0d1622,#09111b);
+  border:1px solid var(--cz-line);
+  border-radius:16px;
+  box-shadow:0 12px 35px rgba(0,0,0,.16);
+}
+.v5-card:hover{border-color:rgba(25,215,123,.18)}
+.dashboard-health{
+  border-color:rgba(25,215,123,.12);
+  background:
+    radial-gradient(circle at 100% 0%,rgba(25,215,123,.07),transparent 35%),
+    linear-gradient(145deg,#0e1823,#091019);
+}
+.health-dot{box-shadow:0 0 14px rgba(25,215,123,.8)}
+.health-items span{
+  background:rgba(5,11,18,.62);
+  border-color:rgba(148,163,184,.15);
+}
+.telegram-preview{
+  background:linear-gradient(145deg,#0a131e,#070e17);
+  border-color:rgba(148,163,184,.17);
+}
+.preview-button{
+  background:linear-gradient(135deg,rgba(25,215,123,.16),rgba(25,215,123,.05));
+  border:1px solid rgba(25,215,123,.17);
+}
+.users-table th{
+  background:#0b131e;
+  color:#9ba9bb;
+}
+.users-table tr:hover td{background:rgba(25,215,123,.025)}
+.metric-track{background:#070d15}
+.metric-fill{background:linear-gradient(180deg,#36e890,#109d5d);box-shadow:0 0 18px rgba(25,215,123,.13)}
+/* Phone layout */
+@media(max-width:768px){
+  .main{padding-top:12px}
+  .topbar{
+    position:sticky;
+    top:0;
+    z-index:30;
+    padding:11px 0 12px;
+    margin-bottom:16px;
+    background:rgba(5,10,17,.90);
+    border-bottom:1px solid rgba(148,163,184,.10);
+    backdrop-filter:blur(18px);
+  }
+  .topbar .title{
+    min-width:0;
+    flex:1 1 auto;
+    font-size:19px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .topbar > div:last-child{
+    flex:0 0 auto;
+    gap:6px!important;
+  }
+  .topbar > div:last-child > button{
+    width:42px;
+    min-width:42px;
+    padding:0!important;
+    font-size:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .topbar > div:last-child > button::first-letter{font-size:19px}
+  .topbar .status{font-size:10px;padding:7px 9px}
+  .cards{gap:10px}
+  .card{
+    border-radius:16px;
+    min-height:126px;
+    padding:14px;
+  }
+  .card-value{font-size:27px}
+  .panel{
+    border-radius:17px;
+    padding:15px;
+  }
+  .panel h2{font-size:19px}
+  .actions button{min-height:46px}
+  .dashboard-health{padding:16px}
+  .health-items{gap:7px}
+  .health-items span{padding:7px 9px}
+  .nav button{
+    border-radius:12px;
+    min-height:58px;
+  }
+  .nav button.active{
+    box-shadow:inset 0 2px 0 var(--cz-green),0 -5px 20px rgba(25,215,123,.06);
+  }
+}
+@media(max-width:420px){
+  .main{padding-left:10px;padding-right:10px}
+  .topbar{margin-left:-10px;margin-right:-10px;padding-left:10px;padding-right:10px}
+  .topbar .title{font-size:18px}
+  .status{font-size:9px!important;padding:6px 8px!important}
+  .cards{gap:8px}
+  .card{min-height:118px;padding:12px}
+  .card-label{font-size:11px}
+  .card-value{font-size:23px}
+  .panel{padding:13px;border-radius:15px}
+}
+
 </style>
 
 </head>
