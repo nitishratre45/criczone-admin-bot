@@ -487,21 +487,28 @@ export async function onRequest(context) {
         chatType === "private" &&
         env.BOT_KV
       ) {
+        let oldUser = {};
+        try {
+          const raw = await env.BOT_KV.get(`users:${chatId}`);
+          oldUser = raw ? JSON.parse(raw) : {};
+        } catch {}
+
         await env.BOT_KV.put(
           `users:${chatId}`,
           JSON.stringify({
             user_id: chatId,
-            first_name:
-              msg.from?.first_name || "",
-            username:
-              msg.from?.username || "",
-            joined_at:
-              (await env.BOT_KV.get(`users:${chatId}`).then(raw => { try { return JSON.parse(raw)?.joined_at || new Date().toISOString(); } catch { return new Date().toISOString(); } }).catch(() => new Date().toISOString())),
-            last_active_at:
-              new Date().toISOString(),
+            first_name: msg.from?.first_name || "",
+            username: msg.from?.username || "",
+            joined_at: oldUser.joined_at || new Date().toISOString(),
+            last_active_at: new Date().toISOString(),
             status: "active",
-            notification_prefs: (() => { try { return JSON.parse(oldUserRaw || "{}").notification_prefs || {match_alerts:true,live_updates:true,news:true,promotions:false}; } catch { return {match_alerts:true,live_updates:true,news:true,promotions:false}; } })(),
-            channel_notifications: (() => { try { return JSON.parse(oldUserRaw || "{}").channel_notifications || "on"; } catch { return "on"; } })()
+            notification_prefs: oldUser.notification_prefs || {
+              match_alerts: true,
+              live_updates: true,
+              news: true,
+              promotions: false
+            },
+            channel_notifications: oldUser.channel_notifications || "on"
           })
         );
       }
