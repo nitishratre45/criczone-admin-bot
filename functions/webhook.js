@@ -1591,10 +1591,6 @@ function chatTypeIsPrivate(msg) {
   return msg?.chat?.type === "private";
 }
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 async function getLink(env, key, fallback) {
   if (!env.BOT_KV) return fallback || "";
 
