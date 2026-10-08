@@ -18,50 +18,12 @@ export async function onRequest(context) {
 
     // ==================================================
     // CHANNEL POST
-    // SEND CHANNEL POSTS TO ALL /START USERS
+    // IGNORE CHANNEL POSTS
     // ==================================================
+    // Posts made in the Telegram channel must stay in the
+    // channel and must NOT be copied into bot chats.
 
     if (update.channel_post) {
-      const post = update.channel_post;
-
-      if (env.BOT_KV) {
-        const fanoutEnabled = await getBotSetting(env.BOT_KV, "CHANNEL_FANOUT_ENABLED", "true");
-        if (/^(false|0|off|no)$/i.test(String(fanoutEnabled).trim())) return new Response("OK");
-        const userKeys = await listAllKeys(env.BOT_KV, "users:");
-
-        for (const key of userKeys) {
-          const userId = key.name.replace("users:", "");
-          try {
-            const rawUser = await env.BOT_KV.get(key.name);
-            const user = rawUser ? JSON.parse(rawUser) : {};
-            if (String(user.channel_notifications || "on").toLowerCase() === "off") continue;
-            const prefs = Object.assign({match_alerts:true,live_updates:true,news:true,promotions:false}, user.notification_prefs || {});
-            if (prefs.news === false) continue;
-          } catch {}
-
-          try {
-            const result = await telegramMethod(
-              env.BOT_TOKEN,
-              "copyMessage",
-              {
-                chat_id: userId,
-                from_chat_id: post.chat.id,
-                message_id: post.message_id
-              }
-            );
-            if (!result?.ok && result?.error_code === 400 && /chat not found|user is deactivated|bot was blocked|kicked/i.test(String(result?.description || ""))) {
-              await env.BOT_KV.delete(key.name);
-            }
-          } catch (error) {
-            console.error(
-              `Failed to send channel post to ${userId}`,
-              error
-            );
-          }
-          await sleep(40);
-        }
-      }
-
       return new Response("OK");
     }
 
