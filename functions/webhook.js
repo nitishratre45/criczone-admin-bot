@@ -235,9 +235,23 @@ export async function onRequest(context) {
         } catch {}
         const status = String(match.status || "Upcoming");
         const statusIcon = /live/i.test(status) ? "🔴" : /complete|finished/i.test(status) ? "✅" : "🟢";
+        const displayDate = (() => {
+          const raw = String(match.date || "").trim();
+          const m = raw.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+          return m ? \`${m[3]}/${m[2]}/${m[1]}\` : (raw || "TBA");
+        })();
+        const displayTime = (() => {
+          const raw = String(match.time || "").trim();
+          const m = raw.match(/^(\\d{1,2}):(\\d{2})$/);
+          if (!m) return raw || "TBA";
+          let h = Number(m[1]), min = m[2];
+          const ap = h >= 12 ? "PM" : "AM";
+          h = h % 12 || 12;
+          return \`${h}:${min} ${ap}\`;
+        })();
         const text = match.team_a && match.team_b
-          ? `<b>⚔️ VS MATCH</b>\n\n🏏 <b>${escapeText(match.team_a)}</b>  🆚  <b>${escapeText(match.team_b)}</b>\n\n━━━━━━━━━━━━━━\n📅 ${escapeText(match.date || "TBA")}\n⏰ ${escapeText(match.time || "TBA")}\n📍 ${escapeText(match.venue || "TBA")}\n${statusIcon} <b>Status:</b> ${escapeText(status)}\n━━━━━━━━━━━━━━`
-          : "⚔️ VS MATCH\n\nNo match has been configured yet.\n\nCheck back soon!";
+          ? \`<b>⚔️ VS MATCH</b>\\n\\n🏏 <b>${escapeText(match.team_a)}</b>  🆚  <b>${escapeText(match.team_b)}</b>\\n\\n━━━━━━━━━━━━━━\\n📅 <b>${escapeText(displayDate)}</b>\\n⏰ <b>${escapeText(displayTime)}</b>\\n📍 <b>${escapeText(match.venue || "TBA")}</b>\\n${statusIcon} <b>Status:</b> ${escapeText(status)}\\n━━━━━━━━━━━━━━\`
+          : "⚔️ VS MATCH\\n\\nNo match has been configured yet.\\n\\nCheck back soon!";
         const buttons = [];
         const link = match.link || await getLink(env,"VS_MATCH_LINK",env.VS_MATCH_LINK);
         if (link) buttons.push([{text:"🏏 Open Match Link",url:link}]);
